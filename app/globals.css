@@ -6,6 +6,31 @@
   html {
     font-family: system-ui, sans-serif;
   }
+  
+  /* Mobile-specific optimizations */
+  @media (max-width: 640px) {
+    body {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Improve touch targets */
+    button, input, select, textarea {
+      min-height: 44px;
+    }
+    
+    /* Prevent zoom on input focus */
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="search"],
+    input[type="password"],
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
 }
 
 @layer components {
@@ -47,5 +72,29 @@
   .destination-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Mobile-specific sidebar styles */
+  @media (max-width: 1023px) {
+    .sidebar {
+      background: white;
+      backdrop-filter: none;
+    }
+  }
+  
+  /* Custom scrollbar for mobile */
+  @media (max-width: 640px) {
+    .sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+    
+    .sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 2px;
+    }
   }
 } 

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
-import { MapPin, Plus, Info } from 'lucide-react'
+import { MapPin, Plus, Info, X } from 'lucide-react'
 import { Destination } from '@/types/destination'
 
 // Fix for default markers in Next.js
@@ -98,10 +98,22 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
   if (!showAddForm || !clickPosition) return null
 
   return (
-    <div className="absolute top-4 left-4 z-[1000] bg-white rounded-lg shadow-lg border p-4 max-w-sm">
-      <div className="flex items-center space-x-2 mb-3">
-        <Plus className="h-5 w-5 text-primary-600" />
-        <h3 className="font-semibold text-gray-900">Add New Destination</h3>
+    <div className="absolute top-4 left-4 right-4 sm:left-4 sm:right-auto z-[1000] bg-white rounded-lg shadow-lg border p-3 sm:p-4 max-w-sm">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-2">
+          <Plus className="h-5 w-5 text-primary-600" />
+          <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Add New Destination</h3>
+        </div>
+        <button
+          onClick={() => {
+            setShowAddForm(false)
+            setNewDestinationName('')
+            setClickPosition(null)
+          }}
+          className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <X className="h-4 w-4 text-gray-600" />
+        </button>
       </div>
       
       <div className="space-y-3">
@@ -114,26 +126,26 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
             value={newDestinationName}
             onChange={(e) => setNewDestinationName(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleAddDestination()}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             placeholder="Enter destination name"
             autoFocus
           />
         </div>
         
-        <div className="text-sm text-gray-600">
+        <div className="text-xs sm:text-sm text-gray-600">
           <div className="flex items-center space-x-1">
-            <MapPin className="h-4 w-4" />
+            <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
             <span>
               {clickPosition.lat.toFixed(4)}, {clickPosition.lng.toFixed(4)}
             </span>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
           <button
             onClick={handleAddDestination}
             disabled={!newDestinationName.trim()}
-            className="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             Add
           </button>
@@ -143,7 +155,7 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
               setNewDestinationName('')
               setClickPosition(null)
             }}
-            className="px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="w-full sm:w-auto px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-sm"
           >
             Cancel
           </button>
@@ -181,12 +193,12 @@ export default function MapComponent({
   if (mapError) {
     return (
       <div className="flex items-center justify-center h-full bg-gray-100">
-        <div className="text-center">
+        <div className="text-center p-4">
           <div className="text-red-600 mb-2">Map loading error</div>
           <div className="text-sm text-gray-600">{mapError}</div>
           <button 
             onClick={() => setMapError(null)}
-            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
           >
             Retry
           </button>
@@ -225,9 +237,9 @@ export default function MapComponent({
             }}
           >
             <Popup>
-              <div className="p-2">
-                <h3 className="font-semibold text-gray-900 mb-1">{destination.name}</h3>
-                <div className="text-sm text-gray-600 space-y-1">
+              <div className="p-2 max-w-xs">
+                <h3 className="font-semibold text-gray-900 mb-1 text-sm">{destination.name}</h3>
+                <div className="text-xs text-gray-600 space-y-1">
                   <div className="flex items-center space-x-1">
                     <MapPin className="h-3 w-3" />
                     <span>{destination.type}</span>
@@ -262,7 +274,7 @@ export default function MapComponent({
       </MapContainer>
       
       {/* Instructions overlay */}
-      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg border p-3 max-w-xs">
+      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg border p-3 max-w-xs hidden sm:block">
         <div className="flex items-center space-x-2 mb-2">
           <MapPin className="h-4 w-4 text-primary-600" />
           <h3 className="font-semibold text-sm text-gray-900">How to use</h3>
@@ -271,6 +283,13 @@ export default function MapComponent({
           <p>• Click anywhere on the map to add a destination</p>
           <p>• Click markers to view details</p>
           <p>• Use the sidebar to manage destinations</p>
+        </div>
+      </div>
+      
+      {/* Mobile instructions */}
+      <div className="absolute bottom-4 left-4 right-4 sm:hidden bg-white rounded-lg shadow-lg border p-3">
+        <div className="text-xs text-gray-600 text-center">
+          <p>Tap the map to add destinations • Tap markers for details</p>
         </div>
       </div>
     </div>

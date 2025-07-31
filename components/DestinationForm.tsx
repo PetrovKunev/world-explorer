@@ -82,12 +82,12 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
             required
             value={formData.name}
             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             placeholder="Enter destination name"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Latitude *
@@ -98,7 +98,7 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
               required
               value={formData.latitude}
               onChange={(e) => setFormData(prev => ({ ...prev, latitude: parseFloat(e.target.value) }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
               placeholder="0.0000"
             />
           </div>
@@ -112,7 +112,7 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
               required
               value={formData.longitude}
               onChange={(e) => setFormData(prev => ({ ...prev, longitude: parseFloat(e.target.value) }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
               placeholder="0.0000"
             />
           </div>
@@ -125,7 +125,7 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
           <select
             value={formData.type}
             onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as Destination['type'] }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
           >
             <option value="city">City</option>
             <option value="landmark">Landmark</option>
@@ -158,7 +158,7 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
               type="date"
               value={formData.visitDate}
               onChange={(e) => setFormData(prev => ({ ...prev, visitDate: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             />
           </div>
         )}
@@ -167,13 +167,13 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Rating (1-5)
           </label>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, rating: star }))}
-                className={`p-1 rounded ${
+                className={`p-1.5 sm:p-1 rounded ${
                   formData.rating && formData.rating >= star
                     ? 'text-yellow-500'
                     : 'text-gray-300'
@@ -202,7 +202,7 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
             value={formData.notes}
             onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             placeholder="Add notes about this destination..."
           />
         </div>
@@ -211,19 +211,19 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Tags
           </label>
-          <div className="flex items-center space-x-2 mb-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-2">
             <input
               type="text"
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
               onKeyPress={handleKeyPress}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
               placeholder="Add a tag..."
             />
             <button
               type="button"
               onClick={addTag}
-              className="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              className="px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
             >
               Add
             </button>
@@ -240,7 +240,7 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
                   <button
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="ml-1 text-gray-500 hover:text-gray-700"
+                    className="ml-1 text-gray-500 hover:text-gray-700 p-0.5"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -251,17 +251,17 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
         </div>
       </div>
 
-      <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-sm"
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
         >
           {initialData ? 'Update' : 'Add'} Destination
         </button>

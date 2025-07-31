@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="#1e40af" stroke="#1d4ed8" stroke-width="1"/>
+  
+  <!-- Globe grid lines -->
+  <path d="M 4 16 Q 16 4 28 16 Q 16 28 4 16" fill="none" stroke="#60a5fa" stroke-width="0.5" opacity="0.7"/>
+  <path d="M 4 16 Q 16 4 28 16 Q 16 28 4 16" fill="none" stroke="#60a5fa" stroke-width="0.5" opacity="0.7" transform="rotate(90 16 16)"/>
+  
+  <!-- Vertical meridian lines -->
+  <line x1="16" y1="4" x2="16" y2="28" stroke="#60a5fa" stroke-width="0.5" opacity="0.6"/>
+  <line x1="4" y1="16" x2="28" y2="16" stroke="#60a5fa" stroke-width="0.5" opacity="0.6"/>
+  
+  <!-- Compass rose -->
+  <g transform="translate(16, 16)">
+    <!-- North arrow -->
+    <path d="M 0 -8 L 2 -2 L 0 0 L -2 -2 Z" fill="#fbbf24"/>
+    <!-- South arrow -->
+    <path d="M 0 8 L 2 2 L 0 0 L -2 2 Z" fill="#fbbf24"/>
+    <!-- East arrow -->
+    <path d="M 8 0 L 2 2 L 0 0 L 2 -2 Z" fill="#fbbf24"/>
+    <!-- West arrow -->
+    <path d="M -8 0 L -2 2 L 0 0 L -2 -2 Z" fill="#fbbf24"/>
+    
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="1" fill="#fbbf24"/>
+  </g>
+  
+  <!-- Small decorative elements -->
+  <circle cx="8" cy="8" r="1" fill="#60a5fa" opacity="0.8"/>
+  <circle cx="24" cy="8" r="1" fill="#60a5fa" opacity="0.8"/>
+  <circle cx="8" cy="24" r="1" fill="#60a5fa" opacity="0.8"/>
+  <circle cx="24" cy="24" r="1" fill="#60a5fa" opacity="0.8"/>
+</svg> 

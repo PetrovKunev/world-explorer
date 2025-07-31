@@ -58,7 +58,7 @@ export default function DestinationCard({
 
   return (
     <div
-      className={`destination-card p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
+      className={`destination-card p-3 sm:p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
         isSelected
           ? 'border-primary-500 bg-primary-50 shadow-md'
           : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
@@ -68,11 +68,11 @@ export default function DestinationCard({
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-2 mb-2">
-            <span className="text-lg">{getTypeIcon(destination.type)}</span>
-            <h3 className="font-medium text-gray-900 truncate">{destination.name}</h3>
+            <span className="text-base sm:text-lg">{getTypeIcon(destination.type)}</span>
+            <h3 className="font-medium text-gray-900 truncate text-sm sm:text-base">{destination.name}</h3>
           </div>
           
-          <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-600 mb-2">
             <div className="flex items-center space-x-1">
               <MapPin className="h-3 w-3" />
               <span className="truncate">
@@ -107,20 +107,20 @@ export default function DestinationCard({
                     e.stopPropagation()
                     onEdit()
                   }}
-                  className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="p-1.5 sm:p-1 text-gray-400 hover:text-gray-600 transition-colors"
                   aria-label="Edit destination"
                 >
-                  <Edit className="h-3 w-3" />
+                  <Edit className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                 </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
                     onDelete()
                   }}
-                  className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                  className="p-1.5 sm:p-1 text-gray-400 hover:text-red-600 transition-colors"
                   aria-label="Delete destination"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
                 </button>
               </div>
             </div>

@@ -22,7 +22,7 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), {
 export default function Home() {
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false) // Default to closed on mobile
 
   // Load destinations from localStorage on component mount
   useEffect(() => {
@@ -55,17 +55,31 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex flex-col h-full">
       <Header 
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         sidebarOpen={sidebarOpen}
       />
       
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Mobile overlay for sidebar */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        
         <Sidebar
           destinations={destinations}
           selectedDestination={selectedDestination}
-          onSelectDestination={setSelectedDestination}
+          onSelectDestination={(dest) => {
+            setSelectedDestination(dest)
+            // Close sidebar on mobile when destination is selected
+            if (window.innerWidth < 1024) {
+              setSidebarOpen(false)
+            }
+          }}
           onAddDestination={addDestination}
           onUpdateDestination={updateDestination}
           onDeleteDestination={deleteDestination}

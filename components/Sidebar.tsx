@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Search, Filter, Edit, Trash2, MapPin, Calendar, Star } from 'lucide-react'
+import { Plus, Search, Filter, Edit, Trash2, MapPin, Calendar, Star, X } from 'lucide-react'
 import { Destination, DestinationFormData } from '@/types/destination'
 import DestinationForm from './DestinationForm'
 import DestinationCard from './DestinationCard'
@@ -66,19 +66,28 @@ export default function Sidebar({
   }
 
   return (
-    <div className={`sidebar w-80 flex flex-col border-r border-gray-200 transition-all duration-300 ${
-      isOpen ? 'translate-x-0' : '-translate-x-full'
+    <div className={`sidebar fixed lg:relative inset-y-0 left-0 z-50 w-full max-w-sm lg:max-w-none lg:w-80 flex flex-col border-r border-gray-200 bg-white transition-all duration-300 ${
+      isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
     }`}>
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-3 sm:p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Destinations</h2>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="p-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-            aria-label="Add destination"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="p-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+              aria-label="Add destination"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onSelectDestination(null)}
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Close sidebar"
+            >
+              <X className="h-4 w-4 text-gray-600" />
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -89,7 +98,7 @@ export default function Sidebar({
               placeholder="Search destinations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             />
           </div>
 
@@ -98,7 +107,7 @@ export default function Sidebar({
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             >
               <option value="all">All types</option>
               <option value="city">Cities</option>
@@ -113,7 +122,7 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
         {filteredDestinations.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <MapPin className="h-12 w-12 mx-auto mb-3 text-gray-300" />
@@ -136,11 +145,22 @@ export default function Sidebar({
 
       {/* Add/Edit Form Modal */}
       {(showAddForm || editingDestination) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">
-              {showAddForm ? 'Add New Destination' : 'Edit Destination'}
-            </h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">
+                {showAddForm ? 'Add New Destination' : 'Edit Destination'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAddForm(false)
+                  setEditingDestination(null)
+                }}
+                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-600" />
+              </button>
+            </div>
             <DestinationForm
               initialData={editingDestination || undefined}
               onSubmit={showAddForm ? handleAddDestination : handleUpdateDestination}
