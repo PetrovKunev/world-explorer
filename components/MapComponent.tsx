@@ -160,6 +160,7 @@ export default function MapComponent({
   onAddDestination,
 }: MapComponentProps) {
   const mapRef = useRef<L.Map | null>(null)
+  const [mapError, setMapError] = useState<string | null>(null)
 
   // Center map on selected destination
   useEffect(() => {
@@ -171,17 +172,45 @@ export default function MapComponent({
     }
   }, [selectedDestination])
 
+  // Handle map initialization errors
+  const handleMapReady = (map: L.Map) => {
+    mapRef.current = map
+    setMapError(null)
+  }
+
+  if (mapError) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-100">
+        <div className="text-center">
+          <div className="text-red-600 mb-2">Map loading error</div>
+          <div className="text-sm text-gray-600">{mapError}</div>
+          <button 
+            onClick={() => setMapError(null)}
+            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="map-container">
       <MapContainer
         center={[48.8566, 2.3522]} // Paris as default center
         zoom={5}
         className="leaflet-container"
-        ref={mapRef}
+        ref={handleMapReady}
+        whenCreated={handleMapReady}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          eventHandlers={{
+            loading: () => setMapError(null),
+            tileerror: () => setMapError('Failed to load map tiles'),
+          }}
         />
         
         <MapClickHandler onAddDestination={onAddDestination} />

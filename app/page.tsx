@@ -11,7 +11,10 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-full bg-gray-100">
-      <div className="text-lg text-gray-600">Loading map...</div>
+      <div className="flex flex-col items-center space-y-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="text-lg text-gray-600">Loading map...</div>
+      </div>
     </div>
   ),
 })

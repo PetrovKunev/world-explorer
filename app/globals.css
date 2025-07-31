@@ -12,11 +12,17 @@
   .map-container {
     height: calc(100vh - 80px);
     width: 100%;
+    position: relative;
   }
   
   .leaflet-container {
-    height: 100%;
-    width: 100%;
+    height: 100% !important;
+    width: 100% !important;
+    z-index: 1;
+  }
+  
+  .leaflet-control-container {
+    z-index: 2;
   }
   
   .destination-marker {
