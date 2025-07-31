@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .map-container {
+    height: calc(100vh - 80px);
+    width: 100%;
+  }
+  
+  .leaflet-container {
+    height: 100%;
+    width: 100%;
+  }
+  
+  .destination-marker {
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .destination-marker:hover {
+    transform: scale(1.1);
+  }
+  
+  .sidebar {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .destination-card {
+    transition: all 0.2s ease;
+  }
+  
+  .destination-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+} 
