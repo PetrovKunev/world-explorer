@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  destinations  Destination[]
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+}
+
+model Destination {
+  id          String   @id @default(cuid())
+  user_id     String
+  name        String
+  latitude    Float
+  longitude   Float
+  type        DestinationType
+  visited     Boolean  @default(false)
+  visit_date  DateTime?
+  notes       String?
+  rating      Int?
+  photos      Json     @default("[]")
+  tags        Json     @default("[]")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@index([user_id])
+  @@index([type])
+  @@index([visited])
+}
+
+enum DestinationType {
+  CITY
+  LANDMARK
+  RESTAURANT
+  HOTEL
+  MUSEUM
+  PARK
+  OTHER
+}
