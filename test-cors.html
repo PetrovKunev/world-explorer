@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase CORS Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Supabase CORS Test</h1>
+    
+    <div class="test">
+        <h3>Test 1: Direct Fetch</h3>
+        <button onclick="testDirectFetch()">Test Direct Fetch</button>
+        <div id="result1"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test 2: Supabase Client</h3>
+        <button onclick="testSupabaseClient()">Test Supabase Client</button>
+        <div id="result2"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test 3: Auth Test</h3>
+        <button onclick="testAuth()">Test Auth</button>
+        <div id="result3"></div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script>
+        const supabaseUrl = 'https://bflpybciorqdbirqxsj.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmbHB5YmNpb3JxZGlicXJ4c2VqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ0MDUwNzEsImV4cCI6MjA2OTk4MTA3MX0.eCnD02jGgs4H1DFKwYDCy_RHf7EkjsRd6vJf9dK9_T8'
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+
+        function logResult(elementId, success, message, data = null) {
+            const element = document.getElementById(elementId)
+            element.className = success ? 'success' : 'error'
+            element.innerHTML = `
+                <strong>${success ? '✅ SUCCESS' : '❌ ERROR'}:</strong> ${message}
+                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+            `
+        }
+
+        async function testDirectFetch() {
+            try {
+                console.log('Testing direct fetch...')
+                
+                const response = await fetch(`${supabaseUrl}/rest/v1/destinations?select=count`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+
+                console.log('Response status:', response.status)
+                console.log('Response headers:', response.headers)
+
+                if (!response.ok) {
+                    const errorText = await response.text()
+                    throw new Error(`HTTP ${response.status}: ${errorText}`)
+                }
+
+                const data = await response.json()
+                logResult('result1', true, 'Direct fetch successful', data)
+                
+            } catch (error) {
+                console.error('Direct fetch error:', error)
+                logResult('result1', false, `Direct fetch failed: ${error.message}`)
+            }
+        }
+
+        async function testSupabaseClient() {
+            try {
+                console.log('Testing Supabase client...')
+                
+                const { data, error } = await supabase
+                    .from('destinations')
+                    .select('count')
+                    .limit(0)
+
+                if (error) {
+                    throw error
+                }
+
+                logResult('result2', true, 'Supabase client successful', data)
+                
+            } catch (error) {
+                console.error('Supabase client error:', error)
+                logResult('result2', false, `Supabase client failed: ${error.message}`)
+            }
+        }
+
+        async function testAuth() {
+            try {
+                console.log('Testing auth...')
+                
+                const { data, error } = await supabase.auth.getSession()
+
+                if (error) {
+                    throw error
+                }
+
+                logResult('result3', true, 'Auth test successful', data)
+                
+            } catch (error) {
+                console.error('Auth error:', error)
+                logResult('result3', false, `Auth failed: ${error.message}`)
+            }
+        }
+    </script>
+</body>
+</html> 
