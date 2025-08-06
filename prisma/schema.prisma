@@ -23,8 +23,8 @@ model Destination {
   id          String   @id @default(cuid())
   user_id     String
   name        String
-  latitude    Float
-  longitude   Float
+  latitude    Float @db.Decimal(11, 8)
+  longitude   Float @db.Decimal(12, 8)
   type        DestinationType
   visited     Boolean  @default(false)
   visit_date  DateTime?

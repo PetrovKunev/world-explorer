@@ -43,12 +43,14 @@ export function useDestinations() {
   }
 
   // Add new destination
-  const addDestination = async (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'photos' | 'tags'>) => {
+  const addDestination = async (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     try {
       setError(null)
 
       console.log('Adding destination to database:', destination)
       console.log('Coordinates - Latitude:', destination.latitude, 'Longitude:', destination.longitude)
+      console.log('Latitude type:', typeof destination.latitude, 'Value:', destination.latitude)
+      console.log('Longitude type:', typeof destination.longitude, 'Value:', destination.longitude)
 
       const { data: { user } } = await supabase.auth.getUser()
       

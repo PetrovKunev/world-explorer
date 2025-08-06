@@ -72,6 +72,8 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
     click: (e) => {
       console.log('Map clicked at:', e.latlng)
       console.log('Latitude:', e.latlng.lat, 'Longitude:', e.latlng.lng)
+      console.log('Latitude (raw):', e.latlng.lat, 'Type:', typeof e.latlng.lat)
+      console.log('Longitude (raw):', e.latlng.lng, 'Type:', typeof e.latlng.lng)
       setClickPosition({ lat: e.latlng.lat, lng: e.latlng.lng })
       setShowAddForm(true)
     },
