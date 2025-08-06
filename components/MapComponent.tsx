@@ -59,17 +59,19 @@ interface MapComponentProps {
   destinations: Destination[]
   selectedDestination: Destination | null
   onSelectDestination: (destination: Destination | null) => void
-  onAddDestination: (destination: Destination) => void
+  onAddDestination: (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void
 }
 
 // Component to handle map click events
-function MapClickHandler({ onAddDestination }: { onAddDestination: (destination: Destination) => void }) {
+function MapClickHandler({ onAddDestination }: { onAddDestination: (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void }) {
   const [clickPosition, setClickPosition] = useState<{ lat: number; lng: number } | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newDestinationName, setNewDestinationName] = useState('')
 
   useMapEvents({
     click: (e) => {
+      console.log('Map clicked at:', e.latlng)
+      console.log('Latitude:', e.latlng.lat, 'Longitude:', e.latlng.lng)
       setClickPosition({ lat: e.latlng.lat, lng: e.latlng.lng })
       setShowAddForm(true)
     },
@@ -77,6 +79,7 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
 
   const handleAddDestination = () => {
     if (clickPosition && newDestinationName.trim()) {
+      console.log('Creating destination with coordinates:', clickPosition)
       const newDestination = {
         name: newDestinationName.trim(),
         latitude: clickPosition.lat,
@@ -86,6 +89,7 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
         photos: [],
         tags: [],
       }
+      console.log('New destination object:', newDestination)
       onAddDestination(newDestination)
       setShowAddForm(false)
       setNewDestinationName('')
@@ -183,8 +187,7 @@ export default function MapComponent({
   }, [selectedDestination])
 
   // Handle map initialization errors
-  const handleMapReady = (map: L.Map) => {
-    mapRef.current = map
+  const handleMapReady = () => {
     setMapError(null)
   }
 
@@ -212,7 +215,7 @@ export default function MapComponent({
         zoom={5}
         className="leaflet-container"
         ref={handleMapReady}
-        whenCreated={handleMapReady}
+        whenReady={handleMapReady}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -225,50 +228,53 @@ export default function MapComponent({
         
         <MapClickHandler onAddDestination={onAddDestination} />
         
-        {destinations.map((destination) => (
-          <Marker
-            key={destination.id}
-            position={[destination.latitude, destination.longitude]}
-            icon={createCustomIcon(destination.type, destination.visited)}
-            eventHandlers={{
-              click: () => onSelectDestination(destination),
-            }}
-          >
-            <Popup>
-              <div className="p-2 max-w-xs">
-                <h3 className="font-semibold text-gray-900 mb-1 text-sm">{destination.name}</h3>
-                <div className="text-xs text-gray-600 space-y-1">
-                  <div className="flex items-center space-x-1">
-                    <MapPin className="h-3 w-3" />
-                    <span>{destination.type}</span>
-                  </div>
-                  {destination.visited && (
-                    <div className="flex items-center space-x-1 text-green-600">
-                      <span className="text-xs">✓ Visited</span>
-                      {destination.visit_date && (
-                        <span className="text-xs">
-                          on {new Date(destination.visit_date).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {destination.rating && (
+        {destinations.map((destination) => {
+          console.log('Rendering marker for destination:', destination.name, 'at coordinates:', destination.latitude, destination.longitude)
+          return (
+            <Marker
+              key={destination.id}
+              position={[destination.latitude, destination.longitude]}
+              icon={createCustomIcon(destination.type, destination.visited)}
+              eventHandlers={{
+                click: () => onSelectDestination(destination),
+              }}
+            >
+              <Popup>
+                <div className="p-2 max-w-xs">
+                  <h3 className="font-semibold text-gray-900 mb-1 text-sm">{destination.name}</h3>
+                  <div className="text-xs text-gray-600 space-y-1">
                     <div className="flex items-center space-x-1">
-                      <span className="text-yellow-500">★</span>
-                      <span className="text-xs">{destination.rating}/5</span>
+                      <MapPin className="h-3 w-3" />
+                      <span>{destination.type}</span>
                     </div>
-                  )}
-                  {destination.notes && (
-                    <div className="flex items-start space-x-1">
-                      <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                      <p className="text-xs line-clamp-2">{destination.notes}</p>
-                    </div>
-                  )}
+                    {destination.visited && (
+                      <div className="flex items-center space-x-1 text-green-600">
+                        <span className="text-xs">✓ Visited</span>
+                        {destination.visit_date && (
+                          <span className="text-xs">
+                            on {new Date(destination.visit_date).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {destination.rating && (
+                      <div className="flex items-center space-x-1">
+                        <span className="text-yellow-500">★</span>
+                        <span className="text-xs">{destination.rating}/5</span>
+                      </div>
+                    )}
+                    {destination.notes && (
+                      <div className="flex items-start space-x-1">
+                        <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs line-clamp-2">{destination.notes}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          )
+        })}
       </MapContainer>
       
       {/* Instructions overlay */}

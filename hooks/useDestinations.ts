@@ -47,6 +47,9 @@ export function useDestinations() {
     try {
       setError(null)
 
+      console.log('Adding destination to database:', destination)
+      console.log('Coordinates - Latitude:', destination.latitude, 'Longitude:', destination.longitude)
+
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
@@ -70,6 +73,9 @@ export function useDestinations() {
         setError(error.message)
         return null
       }
+
+      console.log('Destination saved to database:', data)
+      console.log('Saved coordinates - Latitude:', data.latitude, 'Longitude:', data.longitude)
 
       setDestinations(prev => [data, ...prev])
       return data
