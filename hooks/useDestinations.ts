@@ -47,10 +47,14 @@ export function useDestinations() {
     try {
       setError(null)
 
-      console.log('Adding destination to database:', destination)
-      console.log('Coordinates - Latitude:', destination.latitude, 'Longitude:', destination.longitude)
-      console.log('Latitude type:', typeof destination.latitude, 'Value:', destination.latitude)
-      console.log('Longitude type:', typeof destination.longitude, 'Value:', destination.longitude)
+      console.log('=== ADDING TO DATABASE ===')
+      console.log('Received destination object:', destination)
+      console.log('Latitude (received):', destination.latitude.toString())
+      console.log('Longitude (received):', destination.longitude.toString())
+      console.log('Latitude decimal places:', destination.latitude.toString().split('.')[1]?.length || 0)
+      console.log('Longitude decimal places:', destination.longitude.toString().split('.')[1]?.length || 0)
+      console.log('Latitude type:', typeof destination.latitude)
+      console.log('Longitude type:', typeof destination.longitude)
 
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -76,8 +80,14 @@ export function useDestinations() {
         return null
       }
 
+      console.log('=== SAVED TO DATABASE ===')
       console.log('Destination saved to database:', data)
-      console.log('Saved coordinates - Latitude:', data.latitude, 'Longitude:', data.longitude)
+      console.log('Saved latitude:', data.latitude.toString())
+      console.log('Saved longitude:', data.longitude.toString())
+      console.log('Saved latitude decimal places:', data.latitude.toString().split('.')[1]?.length || 0)
+      console.log('Saved longitude decimal places:', data.longitude.toString().split('.')[1]?.length || 0)
+      console.log('Saved latitude type:', typeof data.latitude)
+      console.log('Saved longitude type:', typeof data.longitude)
 
       setDestinations(prev => [data, ...prev])
       return data

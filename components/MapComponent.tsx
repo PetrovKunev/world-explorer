@@ -70,18 +70,30 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
 
   useMapEvents({
     click: (e) => {
-      console.log('Map clicked at:', e.latlng)
-      console.log('Latitude:', e.latlng.lat, 'Longitude:', e.latlng.lng)
-      console.log('Latitude (raw):', e.latlng.lat, 'Type:', typeof e.latlng.lat)
-      console.log('Longitude (raw):', e.latlng.lng, 'Type:', typeof e.latlng.lng)
-      setClickPosition({ lat: e.latlng.lat, lng: e.latlng.lng })
+      console.log('=== MAP CLICK EVENT ===')
+      console.log('Original Leaflet coordinates:', e.latlng)
+      console.log('Latitude (full precision):', e.latlng.lat.toString())
+      console.log('Longitude (full precision):', e.latlng.lng.toString())
+      console.log('Latitude decimal places:', e.latlng.lat.toString().split('.')[1]?.length || 0)
+      console.log('Longitude decimal places:', e.latlng.lng.toString().split('.')[1]?.length || 0)
+      
+      const position = { lat: e.latlng.lat, lng: e.latlng.lng }
+      console.log('Position object created:', position)
+      console.log('Position lat type:', typeof position.lat, 'value:', position.lat.toString())
+      console.log('Position lng type:', typeof position.lng, 'value:', position.lng.toString())
+      
+      setClickPosition(position)
       setShowAddForm(true)
     },
   })
 
   const handleAddDestination = () => {
     if (clickPosition && newDestinationName.trim()) {
-      console.log('Creating destination with coordinates:', clickPosition)
+      console.log('=== CREATING DESTINATION ===')
+      console.log('Click position from state:', clickPosition)
+      console.log('Latitude from state:', clickPosition.lat.toString())
+      console.log('Longitude from state:', clickPosition.lng.toString())
+      
       const newDestination = {
         name: newDestinationName.trim(),
         latitude: clickPosition.lat,
@@ -91,7 +103,13 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
         photos: [],
         tags: [],
       }
-      console.log('New destination object:', newDestination)
+      console.log('=== DESTINATION OBJECT CREATED ===')
+      console.log('Final destination object:', newDestination)
+      console.log('Final latitude:', newDestination.latitude.toString())
+      console.log('Final longitude:', newDestination.longitude.toString())
+      console.log('Latitude type:', typeof newDestination.latitude)
+      console.log('Longitude type:', typeof newDestination.longitude)
+      
       onAddDestination(newDestination)
       setShowAddForm(false)
       setNewDestinationName('')
@@ -231,7 +249,11 @@ export default function MapComponent({
         <MapClickHandler onAddDestination={onAddDestination} />
         
         {destinations.map((destination) => {
-          console.log('Rendering marker for destination:', destination.name, 'at coordinates:', destination.latitude, destination.longitude)
+          console.log('=== RENDERING MARKER ===')
+          console.log('Destination:', destination.name)
+          console.log('Display latitude:', destination.latitude.toString())
+          console.log('Display longitude:', destination.longitude.toString())
+          console.log('Display coordinates array:', [destination.latitude, destination.longitude])
           return (
             <Marker
               key={destination.id}
