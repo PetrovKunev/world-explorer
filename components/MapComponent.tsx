@@ -77,16 +77,14 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
 
   const handleAddDestination = () => {
     if (clickPosition && newDestinationName.trim()) {
-      const newDestination: Destination = {
-        id: Date.now().toString(),
+      const newDestination = {
         name: newDestinationName.trim(),
         latitude: clickPosition.lat,
         longitude: clickPosition.lng,
-        type: 'other',
+        type: 'other' as const,
         visited: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
         photos: [],
+        tags: [],
       }
       onAddDestination(newDestination)
       setShowAddForm(false)
@@ -247,9 +245,9 @@ export default function MapComponent({
                   {destination.visited && (
                     <div className="flex items-center space-x-1 text-green-600">
                       <span className="text-xs">✓ Visited</span>
-                      {destination.visitDate && (
+                      {destination.visit_date && (
                         <span className="text-xs">
-                          on {new Date(destination.visitDate).toLocaleDateString()}
+                          on {new Date(destination.visit_date).toLocaleDateString()}
                         </span>
                       )}
                     </div>

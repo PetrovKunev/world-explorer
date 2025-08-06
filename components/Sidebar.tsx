@@ -38,14 +38,7 @@ export default function Sidebar({
   })
 
   const handleAddDestination = (formData: DestinationFormData) => {
-    const newDestination: Destination = {
-      ...formData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      photos: [],
-    }
-    onAddDestination(newDestination)
+    onAddDestination(formData)
     setShowAddForm(false)
   }
 
@@ -53,7 +46,7 @@ export default function Sidebar({
     if (editingDestination) {
       onUpdateDestination(editingDestination.id, {
         ...formData,
-        updatedAt: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       setEditingDestination(null)
     }

@@ -1,17 +1,18 @@
 export interface Destination {
   id: string
+  user_id: string
   name: string
   latitude: number
   longitude: number
   type: 'city' | 'landmark' | 'restaurant' | 'hotel' | 'museum' | 'park' | 'other'
   visited: boolean
-  visitDate?: string
+  visit_date?: string
   notes?: string
   rating?: number
-  photos?: string[]
-  tags?: string[]
-  createdAt: string
-  updatedAt: string
+  photos: string[]
+  tags: string[]
+  created_at: string
+  updated_at: string
 }
 
 export interface DestinationFormData {
@@ -20,8 +21,9 @@ export interface DestinationFormData {
   longitude: number
   type: Destination['type']
   visited: boolean
-  visitDate?: string
+  visit_date?: string
   notes?: string
   rating?: number
   tags?: string[]
+  photos?: string[]
 } 

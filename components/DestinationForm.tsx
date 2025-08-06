@@ -17,7 +17,7 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
     longitude: 0,
     type: 'other',
     visited: false,
-    visitDate: '',
+    visit_date: '',
     notes: '',
     rating: undefined,
     tags: [],
@@ -33,7 +33,7 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
         longitude: initialData.longitude,
         type: initialData.type,
         visited: initialData.visited,
-        visitDate: initialData.visitDate || '',
+        visit_date: initialData.visit_date || '',
         notes: initialData.notes || '',
         rating: initialData.rating,
         tags: initialData.tags || [],
@@ -156,8 +156,8 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
             </label>
             <input
               type="date"
-              value={formData.visitDate}
-              onChange={(e) => setFormData(prev => ({ ...prev, visitDate: e.target.value }))}
+              value={formData.visit_date}
+              onChange={(e) => setFormData(prev => ({ ...prev, visit_date: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
             />
           </div>

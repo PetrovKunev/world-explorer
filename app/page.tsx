@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
 import Auth from '@/components/Auth'
-import BasicTest from '@/components/BasicTest'
 import { useDestinations } from '@/hooks/useDestinations'
 import { Destination } from '@/types/database'
 import { supabase } from '@/lib/supabase'
@@ -72,9 +71,6 @@ export default function Home() {
       setSelectedDestination(null)
     }
   }
-
-  // Временно показваме базов тест за debugging
-  return <BasicTest />
 
   // Show auth component if not authenticated
   if (!user) {

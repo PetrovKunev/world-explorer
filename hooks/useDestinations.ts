@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Destination } from '@/types/database'
+import { Destination } from '@/types/destination'
 
 export function useDestinations() {
   const [destinations, setDestinations] = useState<Destination[]>([])
@@ -43,7 +43,7 @@ export function useDestinations() {
   }
 
   // Add new destination
-  const addDestination = async (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const addDestination = async (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'photos' | 'tags'>) => {
     try {
       setError(null)
 
@@ -58,7 +58,9 @@ export function useDestinations() {
         .from('destinations')
         .insert([{
           ...destination,
-          user_id: user.id
+          user_id: user.id,
+          photos: destination.photos || [],
+          tags: destination.tags || []
         }])
         .select()
         .single()
