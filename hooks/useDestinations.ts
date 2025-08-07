@@ -22,6 +22,8 @@ export function useDestinations() {
         return
       }
 
+      console.log('🔍 Fetching destinations for user:', user.id)
+      
       const { data, error } = await supabase
         .from('destinations')
         .select('*')
@@ -32,6 +34,7 @@ export function useDestinations() {
         console.error('Error fetching destinations:', error)
         setError(error.message)
       } else {
+        console.log('✅ Destinations found:', data?.length || 0)
         setDestinations(data || [])
       }
     } catch (err) {
