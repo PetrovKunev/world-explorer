@@ -16,42 +16,61 @@ L.Icon.Default.mergeOptions({
 
 // Custom marker icons for different destination types
 const createCustomIcon = (type: Destination['type'], visited: boolean) => {
-  const colors = {
-    city: '#3B82F6',
-    landmark: '#8B5CF6',
-    restaurant: '#F97316',
-    hotel: '#10B981',
-    museum: '#EAB308',
-    park: '#059669',
-    other: '#6B7280',
+  // Primary color is determined by visit status
+  const primaryColor = visited ? '#10B981' : '#F97316' // Green for visited, Orange for planned
+  
+  // Type icons for different destination categories
+  const typeIcons = {
+    city: '🏙️',
+    landmark: '🗿',
+    restaurant: '🍽️',
+    hotel: '🏨',
+    museum: '🏛️',
+    park: '🌳',
+    other: '📍',
   }
 
-  const color = colors[type]
-  const opacity = visited ? 1 : 0.7
+  const icon = typeIcons[type]
+  const statusIcon = visited ? '✅' : '🧳'
 
   return L.divIcon({
     html: `
       <div style="
-        background-color: ${color};
-        width: 24px;
-        height: 24px;
+        background-color: ${primaryColor};
+        width: 30px;
+        height: 30px;
         border-radius: 50%;
         border: 3px solid white;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        opacity: ${opacity};
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 12px;
+        font-size: 14px;
         font-weight: bold;
+        position: relative;
       ">
-        ${visited ? '✓' : '📍'}
+        ${icon}
+        <div style="
+          position: absolute;
+          bottom: -2px;
+          right: -2px;
+          background-color: white;
+          border-radius: 50%;
+          width: 12px;
+          height: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 8px;
+        ">
+          ${statusIcon}
+        </div>
       </div>
     `,
     className: 'destination-marker',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
   })
 }
 
@@ -67,6 +86,8 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
   const [clickPosition, setClickPosition] = useState<{ lat: number; lng: number } | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newDestinationName, setNewDestinationName] = useState('')
+  const [newDestinationType, setNewDestinationType] = useState<Destination['type']>('other')
+  const [newDestinationVisited, setNewDestinationVisited] = useState(false)
 
   useMapEvents({
     click: (e) => {
@@ -98,8 +119,8 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
         name: newDestinationName.trim(),
         latitude: clickPosition.lat,
         longitude: clickPosition.lng,
-        type: 'other' as const,
-        visited: false,
+        type: newDestinationType,
+        visited: newDestinationVisited,
         photos: [],
         tags: [],
       }
@@ -113,77 +134,160 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
       onAddDestination(newDestination)
       setShowAddForm(false)
       setNewDestinationName('')
+      setNewDestinationType('other')
+      setNewDestinationVisited(false)
       setClickPosition(null)
     }
   }
 
-  if (!showAddForm || !clickPosition) return null
+  const handleCancel = () => {
+    setShowAddForm(false)
+    setNewDestinationName('')
+    setNewDestinationType('other')
+    setNewDestinationVisited(false)
+    setClickPosition(null)
+  }
 
   return (
-    <div className="absolute top-4 left-4 right-4 sm:left-4 sm:right-auto z-[1000] bg-white rounded-lg shadow-lg border p-3 sm:p-4 max-w-sm">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-2">
-          <Plus className="h-5 w-5 text-primary-600" />
-          <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Add New Destination</h3>
-        </div>
-        <button
-          onClick={() => {
-            setShowAddForm(false)
-            setNewDestinationName('')
-            setClickPosition(null)
-          }}
-          className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+    <>
+      {/* Temporary marker for clicked position */}
+      {clickPosition && (
+        <Marker
+          position={[clickPosition.lat, clickPosition.lng]}
+          icon={L.divIcon({
+            html: `
+              <div style="
+                background-color: #EF4444;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                border: 2px solid white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 10px;
+                font-weight: bold;
+                animation: pulse 2s infinite;
+              ">
+                +
+              </div>
+            `,
+            className: 'temp-marker',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+          })}
+        />
+      )}
+
+      {/* Modal dialog for adding destination */}
+      {showAddForm && clickPosition && (
+        <div 
+          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black bg-opacity-50"
+          onClick={(e) => e.stopPropagation()}
         >
-          <X className="h-4 w-4 text-gray-600" />
-        </button>
-      </div>
-      
-      <div className="space-y-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Name *
-          </label>
-          <input
-            type="text"
-            value={newDestinationName}
-            onChange={(e) => setNewDestinationName(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAddDestination()}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
-            placeholder="Enter destination name"
-            autoFocus
-          />
-        </div>
-        
-        <div className="text-xs sm:text-sm text-gray-600">
-          <div className="flex items-center space-x-1">
-            <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span>
-              {clickPosition.lat.toFixed(4)}, {clickPosition.lng.toFixed(4)}
-            </span>
+          <div 
+            className="bg-white rounded-lg shadow-xl border p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Plus className="h-5 w-5 text-primary-600" />
+                <h3 className="font-semibold text-gray-900 text-lg">Добави нова дестинация</h3>
+              </div>
+              <button
+                onClick={handleCancel}
+                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-600" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Име *
+                </label>
+                <input
+                  type="text"
+                  value={newDestinationName}
+                  onChange={(e) => setNewDestinationName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddDestination()}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Въведете име на дестинацията"
+                  autoFocus
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Тип дестинация *
+                  </label>
+                  <select
+                    value={newDestinationType}
+                    onChange={(e) => setNewDestinationType(e.target.value as Destination['type'])}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="city">🏙️ Град</option>
+                    <option value="landmark">🗿 Забележителност</option>
+                    <option value="restaurant">🍽️ Ресторант</option>
+                    <option value="hotel">🏨 Хотел</option>
+                    <option value="museum">🏛️ Музей</option>
+                    <option value="park">🌳 Парк</option>
+                    <option value="other">📍 Друго</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Статус *
+                  </label>
+                  <select
+                    value={newDestinationVisited ? 'visited' : 'planned'}
+                    onChange={(e) => setNewDestinationVisited(e.target.value === 'visited')}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="planned">🧳 За посещение</option>
+                    <option value="visited">✅ Посетено</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="text-sm text-gray-600 mb-2">Координати на местоположението:</div>
+                <div className="flex items-center space-x-2 text-gray-800">
+                  <MapPin className="h-4 w-4 text-red-500" />
+                  <span className="font-mono text-sm">
+                    {clickPosition.lat.toFixed(6)}, {clickPosition.lng.toFixed(6)}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Тези координати са заключени и няма да се променят
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3 pt-4">
+                <button
+                  onClick={handleAddDestination}
+                  disabled={!newDestinationName.trim()}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Добави дестинация
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Отказ
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-        
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
-          <button
-            onClick={handleAddDestination}
-            disabled={!newDestinationName.trim()}
-            className="w-full sm:w-auto px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-          >
-            Add
-          </button>
-          <button
-            onClick={() => {
-              setShowAddForm(false)
-              setNewDestinationName('')
-              setClickPosition(null)
-            }}
-            className="w-full sm:w-auto px-3 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
+      )}
+    </>
   )
 }
 
