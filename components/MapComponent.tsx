@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { MapPin, Plus, Info, X } from 'lucide-react'
+import { MapPin, Plus, Info, X, Calendar } from 'lucide-react'
 import { Destination } from '@/types/destination'
 
 // Fix for default markers in Next.js
@@ -81,6 +81,34 @@ interface MapComponentProps {
   onAddDestination: (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void
 }
 
+// Component to handle map reference and centering
+function MapController({ 
+  selectedDestination, 
+  onAddDestination 
+}: { 
+  selectedDestination: Destination | null
+  onAddDestination: (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void 
+}) {
+  const map = useMap()
+  
+  // Center map on selected destination
+  useEffect(() => {
+    if (selectedDestination && map) {
+      console.log('=== CENTERING MAP ON DESTINATION ===')
+      console.log('Destination:', selectedDestination.name)
+      console.log('Coordinates:', selectedDestination.latitude, selectedDestination.longitude)
+      
+      map.setView(
+        [selectedDestination.latitude, selectedDestination.longitude],
+        13,
+        { animate: true, duration: 1 }
+      )
+    }
+  }, [selectedDestination, map])
+
+  return null
+}
+
 // Component to handle map click events
 function MapClickHandler({ onAddDestination }: { onAddDestination: (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void }) {
   const [clickPosition, setClickPosition] = useState<{ lat: number; lng: number } | null>(null)
@@ -91,6 +119,11 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
 
   useMapEvents({
     click: (e) => {
+      // ВАЖНО: Не обработваме клик върху картата, ако диалогът е отворен
+      if (showAddForm) {
+        return
+      }
+
       console.log('=== MAP CLICK EVENT ===')
       console.log('Original Leaflet coordinates:', e.latlng)
       console.log('Latitude (full precision):', e.latlng.lat.toString())
@@ -98,59 +131,69 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
       console.log('Latitude decimal places:', e.latlng.lat.toString().split('.')[1]?.length || 0)
       console.log('Longitude decimal places:', e.latlng.lng.toString().split('.')[1]?.length || 0)
       
-      const position = { lat: e.latlng.lat, lng: e.latlng.lng }
-      console.log('Position object created:', position)
-      console.log('Position lat type:', typeof position.lat, 'value:', position.lat.toString())
-      console.log('Position lng type:', typeof position.lng, 'value:', position.lng.toString())
-      
-      setClickPosition(position)
+      setClickPosition({ lat: e.latlng.lat, lng: e.latlng.lng })
       setShowAddForm(true)
-    },
-  })
-
-  const handleAddDestination = () => {
-    if (clickPosition && newDestinationName.trim()) {
-      console.log('=== CREATING DESTINATION ===')
-      console.log('Click position from state:', clickPosition)
-      console.log('Latitude from state:', clickPosition.lat.toString())
-      console.log('Longitude from state:', clickPosition.lng.toString())
-      
-      const newDestination = {
-        name: newDestinationName.trim(),
-        latitude: clickPosition.lat,
-        longitude: clickPosition.lng,
-        type: newDestinationType,
-        visited: newDestinationVisited,
-        photos: [],
-        tags: [],
-      }
-      console.log('=== DESTINATION OBJECT CREATED ===')
-      console.log('Final destination object:', newDestination)
-      console.log('Final latitude:', newDestination.latitude.toString())
-      console.log('Final longitude:', newDestination.longitude.toString())
-      console.log('Latitude type:', typeof newDestination.latitude)
-      console.log('Longitude type:', typeof newDestination.longitude)
-      
-      onAddDestination(newDestination)
-      setShowAddForm(false)
       setNewDestinationName('')
       setNewDestinationType('other')
       setNewDestinationVisited(false)
-      setClickPosition(null)
+    },
+  })
+
+  const handleSubmit = () => {
+    console.log('=== SUBMITTING DESTINATION ===')
+    if (!newDestinationName.trim() || !clickPosition) {
+      console.log('Validation failed - name or position missing')
+      return
     }
+
+    console.log('Destination name:', newDestinationName)
+    console.log('Submitted latitude (full):', clickPosition.lat.toString())
+    console.log('Submitted longitude (full):', clickPosition.lng.toString())
+    
+    onAddDestination({
+      name: newDestinationName,
+      latitude: clickPosition.lat,
+      longitude: clickPosition.lng,
+      type: newDestinationType,
+      visited: newDestinationVisited,
+      rating: undefined,
+      visit_date: undefined,
+      notes: undefined,
+      photos: [],
+      tags: [],
+    })
+    
+    setShowAddForm(false)
+    setClickPosition(null)
+    setNewDestinationName('')
+    setNewDestinationType('other')
+    setNewDestinationVisited(false)
   }
 
   const handleCancel = () => {
     setShowAddForm(false)
+    setClickPosition(null)
     setNewDestinationName('')
     setNewDestinationType('other')
     setNewDestinationVisited(false)
-    setClickPosition(null)
+  }
+
+  // Prevent Enter key from propagating to map
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation()
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSubmit()
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      handleCancel()
+    }
   }
 
   return (
     <>
-      {/* Temporary marker for clicked position */}
+      {/* Temporary marker */}
       {clickPosition && (
         <Marker
           position={[clickPosition.lat, clickPosition.lng]}
@@ -185,11 +228,16 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
       {showAddForm && clickPosition && (
         <div 
           className="fixed inset-0 z-[2000] flex items-center justify-center bg-black bg-opacity-50"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            handleCancel()
+          }}
         >
           <div 
             className="bg-white rounded-lg shadow-xl border p-6 max-w-md w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+            }}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
@@ -197,7 +245,10 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
                 <h3 className="font-semibold text-gray-900 text-lg">Добави нова дестинация</h3>
               </div>
               <button
-                onClick={handleCancel}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleCancel()
+                }}
                 className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <X className="h-5 w-5 text-gray-600" />
@@ -206,83 +257,100 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Име *
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Име <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={newDestinationName}
                   onChange={(e) => setNewDestinationName(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddDestination()}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  onKeyDown={handleKeyDown}
                   placeholder="Въведете име на дестинацията"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   autoFocus
+                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Тип дестинация *
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Тип дестинация <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={newDestinationType}
-                    onChange={(e) => setNewDestinationType(e.target.value as Destination['type'])}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  >
-                    <option value="city">🏙️ Град</option>
-                    <option value="landmark">🗿 Забележителност</option>
-                    <option value="restaurant">🍽️ Ресторант</option>
-                    <option value="hotel">🏨 Хотел</option>
-                    <option value="museum">🏛️ Музей</option>
-                    <option value="park">🌳 Парк</option>
-                    <option value="other">📍 Друго</option>
-                  </select>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <select
+                      value={newDestinationType}
+                      onChange={(e) => setNewDestinationType(e.target.value as Destination['type'])}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value="other">📍 Друго</option>
+                      <option value="city">🏙️ Град</option>
+                      <option value="landmark">🗿 Забележителност</option>
+                      <option value="restaurant">🍽️ Ресторант</option>
+                      <option value="hotel">🏨 Хотел</option>
+                      <option value="museum">🏛️ Музей</option>
+                      <option value="park">🌳 Парк</option>
+                    </select>
+                  </div>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Статус *
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Статус <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={newDestinationVisited ? 'visited' : 'planned'}
-                    onChange={(e) => setNewDestinationVisited(e.target.value === 'visited')}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  >
-                    <option value="planned">🧳 За посещение</option>
-                    <option value="visited">✅ Посетено</option>
-                  </select>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <select
+                      value={newDestinationVisited ? 'visited' : 'planned'}
+                      onChange={(e) => setNewDestinationVisited(e.target.value === 'visited')}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value="planned">🧳 За посещение</option>
+                      <option value="visited">✅ Посетена</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-              
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="text-sm text-gray-600 mb-2">Координати на местоположението:</div>
-                <div className="flex items-center space-x-2 text-gray-800">
-                  <MapPin className="h-4 w-4 text-red-500" />
-                  <span className="font-mono text-sm">
-                    {clickPosition.lat.toFixed(6)}, {clickPosition.lng.toFixed(6)}
-                  </span>
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Тези координати са заключени и няма да се променят
+
+              <div className="bg-gray-50 rounded-lg p-3">
+                <div className="flex items-start space-x-2">
+                  <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="text-gray-700 font-medium">Координати на местоположението:</p>
+                    <p className="text-gray-600 font-mono text-xs mt-1">
+                      {clickPosition.lat.toFixed(6)}, {clickPosition.lng.toFixed(6)}
+                    </p>
+                    <p className="text-gray-500 text-xs mt-1">
+                      Тези координати са заключени и няма да се променят
+                    </p>
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex items-center space-x-3 pt-4">
-                <button
-                  onClick={handleAddDestination}
-                  disabled={!newDestinationName.trim()}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Добави дестинация
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Отказ
-                </button>
-              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSubmit()
+                }}
+                disabled={!newDestinationName.trim()}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Добави дестинация
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleCancel()
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Отказ
+              </button>
             </div>
           </div>
         </div>
@@ -297,18 +365,7 @@ export default function MapComponent({
   onSelectDestination,
   onAddDestination,
 }: MapComponentProps) {
-  const mapRef = useRef<L.Map | null>(null)
   const [mapError, setMapError] = useState<string | null>(null)
-
-  // Center map on selected destination
-  useEffect(() => {
-    if (selectedDestination && mapRef.current) {
-      mapRef.current.setView(
-        [selectedDestination.latitude, selectedDestination.longitude],
-        13
-      )
-    }
-  }, [selectedDestination])
 
   // Handle map initialization errors
   const handleMapReady = () => {
@@ -338,8 +395,9 @@ export default function MapComponent({
         center={[48.8566, 2.3522]} // Paris as default center
         zoom={5}
         className="leaflet-container"
-        ref={handleMapReady}
-        whenReady={handleMapReady}
+        whenReady={() => {
+          handleMapReady()
+        }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -350,6 +408,7 @@ export default function MapComponent({
           }}
         />
         
+        <MapController selectedDestination={selectedDestination} onAddDestination={onAddDestination} />
         <MapClickHandler onAddDestination={onAddDestination} />
         
         {destinations.map((destination) => {

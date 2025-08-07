@@ -1,6 +1,6 @@
 'use client'
 
-import { MapPin, Calendar, Star, Edit, Trash2 } from 'lucide-react'
+import { MapPin, Calendar, Star, Edit, Trash2, Navigation } from 'lucide-react'
 import { Destination } from '@/types/destination'
 
 interface DestinationCardProps {
@@ -60,7 +60,7 @@ export default function DestinationCard({
     <div
       className={`destination-card p-3 sm:p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
         isSelected
-          ? 'border-primary-500 bg-primary-50 shadow-md'
+          ? 'border-primary-500 bg-primary-50 shadow-md ring-2 ring-primary-200'
           : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
       }`}
       onClick={onSelect}
@@ -70,6 +70,7 @@ export default function DestinationCard({
           <div className="flex items-center space-x-2 mb-2">
             <span className="text-base sm:text-lg">{getTypeIcon(destination.type)}</span>
             <h3 className="font-medium text-gray-900 truncate text-sm sm:text-base">{destination.name}</h3>
+            <Navigation className="h-3 w-3 text-gray-400 ml-auto" />
           </div>
           
           <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs sm:text-sm text-gray-600 mb-2">
