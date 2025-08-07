@@ -10,7 +10,7 @@ interface SidebarProps {
   destinations: Destination[]
   selectedDestination: Destination | null
   onSelectDestination: (destination: Destination | null) => void
-  onAddDestination: (destination: Destination) => void
+  onAddDestination: (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void
   onUpdateDestination: (id: string, updates: Partial<Destination>) => void
   onDeleteDestination: (id: string) => void
   isOpen: boolean
@@ -38,7 +38,11 @@ export default function Sidebar({
   })
 
   const handleAddDestination = (formData: DestinationFormData) => {
-    onAddDestination(formData)
+    onAddDestination({
+      ...formData,
+      photos: formData.photos || [],
+      tags: formData.tags || [],
+    })
     setShowAddForm(false)
   }
 
