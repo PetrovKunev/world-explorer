@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Destination } from '@/types/destination'
 
-export function useDestinations() {
+export function useDestinations(userId?: string) {
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -13,21 +13,19 @@ export function useDestinations() {
       setLoading(true)
       setError(null)
 
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        console.log('No authenticated user found')
+      if (!userId) {
+        console.log('No authenticated userId provided')
         setDestinations([])
         setLoading(false)
         return
       }
 
-      console.log('🔍 Fetching destinations for user:', user.id)
+      console.log('🔍 Fetching destinations for user:', userId)
       
       const { data, error } = await supabase
         .from('destinations')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -59,9 +57,7 @@ export function useDestinations() {
       console.log('Latitude type:', typeof destination.latitude)
       console.log('Longitude type:', typeof destination.longitude)
 
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
+      if (!userId) {
         setError('User not authenticated')
         return null
       }
@@ -70,7 +66,7 @@ export function useDestinations() {
         .from('destinations')
         .insert([{
           ...destination,
-          user_id: user.id,
+          user_id: userId,
           photos: destination.photos || [],
           tags: destination.tags || []
         }])
@@ -106,9 +102,7 @@ export function useDestinations() {
     try {
       setError(null)
 
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
+      if (!userId) {
         setError('User not authenticated')
         return null
       }
@@ -120,7 +114,7 @@ export function useDestinations() {
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .select()
         .single()
 
@@ -146,9 +140,7 @@ export function useDestinations() {
     try {
       setError(null)
 
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
+      if (!userId) {
         setError('User not authenticated')
         return false
       }
@@ -157,7 +149,7 @@ export function useDestinations() {
         .from('destinations')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
 
       if (error) {
         console.error('Error deleting destination:', error)
@@ -174,10 +166,10 @@ export function useDestinations() {
     }
   }
 
-  // Load destinations on mount
+  // Load destinations when userId changes
   useEffect(() => {
     fetchDestinations()
-  }, [])
+  }, [userId])
 
   return {
     destinations,

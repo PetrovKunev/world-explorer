@@ -37,7 +37,7 @@ export default function Home() {
     updateDestination,
     deleteDestination,
     refetch
-  } = useDestinations()
+  } = useDestinations(user?.id || undefined)
 
   useEffect(() => {
     // Get initial session
