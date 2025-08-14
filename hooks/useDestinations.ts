@@ -62,14 +62,21 @@ export function useDestinations(userId?: string) {
         return null
       }
 
+      // Prepare destination data for database insertion
+      const destinationData = {
+        ...destination,
+        user_id: userId,
+        photos: destination.photos || [],
+        tags: destination.tags || [],
+        // Convert empty string to null for visit_date to avoid database errors
+        visit_date: destination.visit_date && destination.visit_date !== '' ? destination.visit_date : null,
+        // Convert empty string to null for notes to avoid database errors
+        notes: destination.notes && destination.notes !== '' ? destination.notes : null,
+      }
+
       const { data, error } = await supabase
         .from('destinations')
-        .insert([{
-          ...destination,
-          user_id: userId,
-          photos: destination.photos || [],
-          tags: destination.tags || []
-        }])
+        .insert([destinationData])
         .select()
         .single()
 
@@ -107,12 +114,19 @@ export function useDestinations(userId?: string) {
         return null
       }
 
+      // Prepare updates data for database update
+      const updateData = {
+        ...updates,
+        updated_at: new Date().toISOString(),
+        // Convert empty string to null for visit_date to avoid database errors
+        visit_date: updates.visit_date && updates.visit_date !== '' ? updates.visit_date : null,
+        // Convert empty string to null for notes to avoid database errors
+        notes: updates.notes && updates.notes !== '' ? updates.notes : null,
+      }
+
       const { data, error } = await supabase
         .from('destinations')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', id)
         .eq('user_id', userId)
         .select()
