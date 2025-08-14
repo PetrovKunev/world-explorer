@@ -47,10 +47,10 @@ export default function DestinationForm({ initialData, onSubmit, onCancel }: Des
     // Prepare form data for submission
     const submitData = {
       ...formData,
-      // Convert empty string to null for visit_date to avoid database errors
-      visit_date: formData.visit_date && formData.visit_date.trim() !== '' ? formData.visit_date : null,
-      // Convert empty string to null for notes to avoid database errors
-      notes: formData.notes && formData.notes.trim() !== '' ? formData.notes : null,
+      // Convert empty string to undefined for visit_date to avoid database errors
+      visit_date: formData.visit_date && formData.visit_date.trim() !== '' ? formData.visit_date : undefined,
+      // Convert empty string to undefined for notes to avoid database errors
+      notes: formData.notes && formData.notes.trim() !== '' ? formData.notes : undefined,
     }
     
     onSubmit(submitData)

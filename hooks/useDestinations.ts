@@ -68,10 +68,10 @@ export function useDestinations(userId?: string) {
         user_id: userId,
         photos: destination.photos || [],
         tags: destination.tags || [],
-        // Convert empty string to null for visit_date to avoid database errors
-        visit_date: destination.visit_date && destination.visit_date !== '' ? destination.visit_date : null,
-        // Convert empty string to null for notes to avoid database errors
-        notes: destination.notes && destination.notes !== '' ? destination.notes : null,
+        // Convert empty string to undefined for visit_date to avoid database errors
+        visit_date: destination.visit_date && destination.visit_date !== '' ? destination.visit_date : undefined,
+        // Convert empty string to undefined for notes to avoid database errors
+        notes: destination.notes && destination.notes !== '' ? destination.notes : undefined,
       }
 
       const { data, error } = await supabase
@@ -118,10 +118,10 @@ export function useDestinations(userId?: string) {
       const updateData = {
         ...updates,
         updated_at: new Date().toISOString(),
-        // Convert empty string to null for visit_date to avoid database errors
-        visit_date: updates.visit_date && updates.visit_date !== '' ? updates.visit_date : null,
-        // Convert empty string to null for notes to avoid database errors
-        notes: updates.notes && updates.notes !== '' ? updates.notes : null,
+        // Convert empty string to undefined for visit_date to avoid database errors
+        visit_date: updates.visit_date && updates.visit_date !== '' ? updates.visit_date : undefined,
+        // Convert empty string to undefined for notes to avoid database errors
+        notes: updates.notes && updates.notes !== '' ? updates.notes : undefined,
       }
 
       const { data, error } = await supabase
