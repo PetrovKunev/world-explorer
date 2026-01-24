@@ -94,10 +94,6 @@ function MapController({
   // Center map on selected destination
   useEffect(() => {
     if (selectedDestination && map) {
-      console.log('=== CENTERING MAP ON DESTINATION ===')
-      console.log('Destination:', selectedDestination.name)
-      console.log('Coordinates:', selectedDestination.latitude, selectedDestination.longitude)
-      
       map.setView(
         [selectedDestination.latitude, selectedDestination.longitude],
         13,
@@ -119,18 +115,11 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
 
   useMapEvents({
     click: (e) => {
-      // ВАЖНО: Не обработваме клик върху картата, ако диалогът е отворен
+      // Don't handle map click if the dialog is open
       if (showAddForm) {
         return
       }
 
-      console.log('=== MAP CLICK EVENT ===')
-      console.log('Original Leaflet coordinates:', e.latlng)
-      console.log('Latitude (full precision):', e.latlng.lat.toString())
-      console.log('Longitude (full precision):', e.latlng.lng.toString())
-      console.log('Latitude decimal places:', e.latlng.lat.toString().split('.')[1]?.length || 0)
-      console.log('Longitude decimal places:', e.latlng.lng.toString().split('.')[1]?.length || 0)
-      
       setClickPosition({ lat: e.latlng.lat, lng: e.latlng.lng })
       setShowAddForm(true)
       setNewDestinationName('')
@@ -140,16 +129,10 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
   })
 
   const handleSubmit = () => {
-    console.log('=== SUBMITTING DESTINATION ===')
     if (!newDestinationName.trim() || !clickPosition) {
-      console.log('Validation failed - name or position missing')
       return
     }
 
-    console.log('Destination name:', newDestinationName)
-    console.log('Submitted latitude (full):', clickPosition.lat.toString())
-    console.log('Submitted longitude (full):', clickPosition.lng.toString())
-    
     onAddDestination({
       name: newDestinationName,
       latitude: clickPosition.lat,
@@ -411,13 +394,7 @@ export default function MapComponent({
         <MapController selectedDestination={selectedDestination} onAddDestination={onAddDestination} />
         <MapClickHandler onAddDestination={onAddDestination} />
         
-        {destinations.map((destination) => {
-          console.log('=== RENDERING MARKER ===')
-          console.log('Destination:', destination.name)
-          console.log('Display latitude:', destination.latitude.toString())
-          console.log('Display longitude:', destination.longitude.toString())
-          console.log('Display coordinates array:', [destination.latitude, destination.longitude])
-          return (
+        {destinations.map((destination) => (
             <Marker
               key={destination.id}
               position={[destination.latitude, destination.longitude]}
@@ -460,8 +437,7 @@ export default function MapComponent({
                 </div>
               </Popup>
             </Marker>
-          )
-        })}
+          ))}
       </MapContainer>
       
       {/* Instructions overlay */}
