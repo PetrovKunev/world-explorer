@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { updateDestinationSchema, formatZodError } from '@/lib/validations'
+import { z } from 'zod'
+
+// UUID validation schema
+const uuidSchema = z.string().uuid('Invalid destination ID')
 
 export async function PUT(
   request: NextRequest,
@@ -7,6 +12,16 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
+
+    // Validate UUID format
+    const idResult = uuidSchema.safeParse(id)
+    if (!idResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid destination ID format' },
+        { status: 400 }
+      )
+    }
+
     const supabase = await createSupabaseServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -16,10 +31,21 @@ export async function PUT(
 
     const body = await request.json()
 
+    // Validate input with Zod
+    const result = updateDestinationSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: formatZodError(result.error) },
+        { status: 400 }
+      )
+    }
+
+    const validatedData = result.data
+
     const { data: destination, error } = await supabase
       .from('destinations')
       .update({
-        ...body,
+        ...validatedData,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -47,6 +73,16 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
+
+    // Validate UUID format
+    const idResult = uuidSchema.safeParse(id)
+    if (!idResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid destination ID format' },
+        { status: 400 }
+      )
+    }
+
     const supabase = await createSupabaseServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 

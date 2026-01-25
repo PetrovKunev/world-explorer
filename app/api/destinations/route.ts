@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { createDestinationSchema, formatZodError } from '@/lib/validations'
 
 export async function GET() {
   try {
@@ -37,18 +38,22 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    // Validate required fields
-    if (!body.name || typeof body.latitude !== 'number' || typeof body.longitude !== 'number') {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    // Validate input with Zod
+    const result = createDestinationSchema.safeParse(body)
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: formatZodError(result.error) },
+        { status: 400 }
+      )
     }
+
+    const validatedData = result.data
 
     const { data: destination, error } = await supabase
       .from('destinations')
       .insert([{
-        ...body,
+        ...validatedData,
         user_id: user.id,
-        photos: body.photos || [],
-        tags: body.tags || []
       }])
       .select()
       .single()
