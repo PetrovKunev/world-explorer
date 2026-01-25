@@ -23,7 +23,7 @@ export const authOptions: NextAuthOptions = {
     secret: supabaseServiceKey,
   }),
   providers: [
-    // Можете да добавите провайдери тук (Google, GitHub, etc.)
+    // Add providers here (Google, GitHub, etc.)
   ],
   callbacks: {
     session: async ({ session, token }) => {

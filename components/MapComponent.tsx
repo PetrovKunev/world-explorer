@@ -225,7 +225,7 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-2">
                 <Plus className="h-5 w-5 text-primary-600" />
-                <h3 className="font-semibold text-gray-900 text-lg">Добави нова дестинация</h3>
+                <h3 className="font-semibold text-gray-900 text-lg">Add New Destination</h3>
               </div>
               <button
                 onClick={(e) => {
@@ -241,14 +241,14 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Име <span className="text-red-500">*</span>
+                  Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={newDestinationName}
                   onChange={(e) => setNewDestinationName(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Въведете име на дестинацията"
+                  placeholder="Enter destination name"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   autoFocus
                   onClick={(e) => e.stopPropagation()}
@@ -258,7 +258,7 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Тип дестинация <span className="text-red-500">*</span>
+                    Destination Type <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -268,20 +268,20 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
                       className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <option value="other">📍 Друго</option>
-                      <option value="city">🏙️ Град</option>
-                      <option value="landmark">🗿 Забележителност</option>
-                      <option value="restaurant">🍽️ Ресторант</option>
-                      <option value="hotel">🏨 Хотел</option>
-                      <option value="museum">🏛️ Музей</option>
-                      <option value="park">🌳 Парк</option>
+                      <option value="other">📍 Other</option>
+                      <option value="city">🏙️ City</option>
+                      <option value="landmark">🗿 Landmark</option>
+                      <option value="restaurant">🍽️ Restaurant</option>
+                      <option value="hotel">🏨 Hotel</option>
+                      <option value="museum">🏛️ Museum</option>
+                      <option value="park">🌳 Park</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Статус <span className="text-red-500">*</span>
+                    Status <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -291,8 +291,8 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
                       className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <option value="planned">🧳 За посещение</option>
-                      <option value="visited">✅ Посетена</option>
+                      <option value="planned">🧳 Planned</option>
+                      <option value="visited">✅ Visited</option>
                     </select>
                   </div>
                 </div>
@@ -302,12 +302,12 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
                 <div className="flex items-start space-x-2">
                   <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
                   <div className="text-sm">
-                    <p className="text-gray-700 font-medium">Координати на местоположението:</p>
+                    <p className="text-gray-700 font-medium">Location Coordinates:</p>
                     <p className="text-gray-600 font-mono text-xs mt-1">
                       {clickPosition.lat.toFixed(6)}, {clickPosition.lng.toFixed(6)}
                     </p>
                     <p className="text-gray-500 text-xs mt-1">
-                      Тези координати са заключени и няма да се променят
+                      These coordinates are locked and won't change
                     </p>
                   </div>
                 </div>
@@ -323,7 +323,7 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
                 disabled={!newDestinationName.trim()}
                 className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Добави дестинация
+                Add Destination
               </button>
               <button
                 onClick={(e) => {
@@ -332,7 +332,7 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
                 }}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Отказ
+                Cancel
               </button>
             </div>
           </div>
