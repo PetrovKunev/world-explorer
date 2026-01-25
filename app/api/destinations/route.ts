@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export async function GET() {
   try {
+    const supabase = await createSupabaseServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -16,27 +17,26 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Database error:', error)
       return NextResponse.json({ error: 'Failed to fetch destinations' }, { status: 500 })
     }
 
     return NextResponse.json(destinations || [])
-  } catch (error) {
-    console.error('API error:', error)
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createSupabaseServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
-    
+
     // Validate required fields
     if (!body.name || typeof body.latitude !== 'number' || typeof body.longitude !== 'number') {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -54,13 +54,11 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('Database error:', error)
       return NextResponse.json({ error: 'Failed to create destination' }, { status: 500 })
     }
 
     return NextResponse.json(destination)
-  } catch (error) {
-    console.error('API error:', error)
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-} 
+}
