@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { X } from 'lucide-react'
+import { X, MapPin } from 'lucide-react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
+import { ToastProvider } from '@/components/Toaster'
 import { useDestinations } from '@/hooks/useDestinations'
 import { Destination, DestinationInput } from '@/types/destination'
 
@@ -12,10 +13,10 @@ import { Destination, DestinationInput } from '@/types/destination'
 const MapComponent = dynamic(() => import('@/components/MapComponent'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full items-center justify-center bg-gray-100">
-      <div className="flex flex-col items-center space-y-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600"></div>
-        <div className="text-lg text-gray-600">Зареждане на картата…</div>
+    <div className="flex h-full animate-pulse items-center justify-center bg-gray-200">
+      <div className="flex flex-col items-center space-y-3 text-gray-500">
+        <MapPin className="h-8 w-8" />
+        <div className="text-sm">Зареждане на картата…</div>
       </div>
     </div>
   ),
@@ -27,8 +28,17 @@ interface AppShellProps {
   initialError: string | null
 }
 
-export default function AppShell({ user, initialDestinations, initialError }: AppShellProps) {
+export default function AppShell(props: AppShellProps) {
+  return (
+    <ToastProvider>
+      <AppShellInner {...props} />
+    </ToastProvider>
+  )
+}
+
+function AppShellInner({ user, initialDestinations, initialError }: AppShellProps) {
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null)
+  const [loadError, setLoadError] = useState(initialError)
   // null = по подразбиране (отворен на десктоп, затворен на мобилен — само CSS)
   const [sidebarOpen, setSidebarOpen] = useState<boolean | null>(null)
 
@@ -39,20 +49,18 @@ export default function AppShell({ user, initialDestinations, initialError }: Ap
     })
   }
 
-  const {
-    destinations,
-    error,
-    clearError,
-    addDestination,
-    updateDestination,
-    deleteDestination,
-  } = useDestinations(user.id, initialDestinations, initialError)
+  const { destinations, addDestination, updateDestination, deleteDestination } =
+    useDestinations(user.id, initialDestinations)
 
   const handleAddDestination = async (input: DestinationInput) => {
     const created = await addDestination(input)
     if (created) {
       setSelectedDestination(created)
     }
+  }
+
+  const handleMoveDestination = (id: string, latitude: number, longitude: number) => {
+    updateDestination(id, { latitude, longitude })
   }
 
   const handleDeleteDestination = async (id: string) => {
@@ -66,11 +74,11 @@ export default function AppShell({ user, initialDestinations, initialError }: Ap
     <div className="flex h-full flex-col">
       <Header onToggleSidebar={toggleSidebar} userEmail={user.email} />
 
-      {error && (
+      {loadError && (
         <div className="flex items-center justify-between border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-          <span>{error}</span>
+          <span>{loadError}</span>
           <button
-            onClick={clearError}
+            onClick={() => setLoadError(null)}
             className="rounded p-1 transition-colors hover:bg-red-100"
             aria-label="Затвори съобщението"
           >
@@ -111,6 +119,7 @@ export default function AppShell({ user, initialDestinations, initialError }: Ap
             selectedDestination={selectedDestination}
             onSelectDestination={setSelectedDestination}
             onAddDestination={handleAddDestination}
+            onMoveDestination={handleMoveDestination}
           />
         </div>
       </div>

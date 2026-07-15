@@ -25,6 +25,8 @@ export default function RootLayout({
   return (
     <html lang="bg">
       <body className={inter.className}>
+        {/* React 19 повдига link елемента в <head> — по-бърза първа заявка към tile сървъра */}
+        <link rel="preconnect" href="https://tile.openstreetmap.org" />
         <div className="flex h-dvh flex-col">
           <main className="flex-1 overflow-hidden">{children}</main>
           <Footer />

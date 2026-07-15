@@ -11,6 +11,7 @@ import {
 } from '@/types/destination'
 import DestinationForm from './DestinationForm'
 import DestinationCard from './DestinationCard'
+import ConfirmDialog from './ConfirmDialog'
 
 interface SidebarProps {
   destinations: Destination[]
@@ -36,6 +37,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingDestination, setEditingDestination] = useState<Destination | null>(null)
+  const [deletingDestination, setDeletingDestination] = useState<Destination | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<DestinationType | 'all'>('all')
 
@@ -57,12 +59,6 @@ export default function Sidebar({
     if (editingDestination) {
       onUpdateDestination(editingDestination.id, input)
       setEditingDestination(null)
-    }
-  }
-
-  const handleDeleteDestination = (id: string) => {
-    if (confirm('Сигурни ли сте, че искате да изтриете тази дестинация?')) {
-      onDeleteDestination(id)
     }
   }
 
@@ -143,7 +139,7 @@ export default function Sidebar({
               isSelected={selectedDestination?.id === destination.id}
               onSelect={() => onSelectDestination(destination)}
               onEdit={() => setEditingDestination(destination)}
-              onDelete={() => handleDeleteDestination(destination.id)}
+              onDelete={() => setDeletingDestination(destination)}
             />
           ))
         )}
@@ -178,6 +174,20 @@ export default function Sidebar({
             />
           </div>
         </div>
+      )}
+
+      {/* Потвърждение за изтриване */}
+      {deletingDestination && (
+        <ConfirmDialog
+          title="Изтриване на дестинация"
+          message={`Сигурни ли сте, че искате да изтриете „${deletingDestination.name}“?`}
+          confirmLabel="Изтрий"
+          onConfirm={() => {
+            onDeleteDestination(deletingDestination.id)
+            setDeletingDestination(null)
+          }}
+          onCancel={() => setDeletingDestination(null)}
+        />
       )}
     </div>
   )

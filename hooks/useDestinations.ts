@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/Toaster'
 import { Destination, DestinationInput } from '@/types/destination'
 
 // Празните стойности се нормализират до null — undefined ключовете се
@@ -17,19 +18,13 @@ function normalize(input: Partial<DestinationInput>) {
   return data
 }
 
-export function useDestinations(
-  userId: string,
-  initialDestinations: Destination[],
-  initialError: string | null = null
-) {
+export function useDestinations(userId: string, initialDestinations: Destination[]) {
   const supabase = useMemo(() => createClient(), [])
+  const showToast = useToast()
   const [destinations, setDestinations] = useState<Destination[]>(initialDestinations)
-  const [error, setError] = useState<string | null>(initialError)
 
   const addDestination = useCallback(
     async (input: DestinationInput): Promise<Destination | null> => {
-      setError(null)
-
       const { data, error } = await supabase
         .from('destinations')
         .insert([
@@ -44,19 +39,26 @@ export function useDestinations(
         .single()
 
       if (error) {
-        setError('Дестинацията не можа да бъде добавена. Опитайте отново.')
+        showToast('error', 'Дестинацията не можа да бъде добавена. Опитайте отново.')
         return null
       }
 
       setDestinations((prev) => [data, ...prev])
+      showToast('success', `„${data.name}“ е добавена`)
       return data
     },
-    [supabase, userId]
+    [supabase, userId, showToast]
   )
 
   const updateDestination = useCallback(
     async (id: string, updates: Partial<DestinationInput>): Promise<Destination | null> => {
-      setError(null)
+      // Оптимистично обновяване — при грешка връщаме предишното състояние
+      let snapshot: Destination[] = []
+      setDestinations((prev) => {
+        snapshot = prev
+        const patch = normalize(updates) as Partial<Destination>
+        return prev.map((dest) => (dest.id === id ? { ...dest, ...patch } : dest))
+      })
 
       const { data, error } = await supabase
         .from('destinations')
@@ -67,19 +69,26 @@ export function useDestinations(
         .single()
 
       if (error) {
-        setError('Промените не можаха да бъдат запазени. Опитайте отново.')
+        setDestinations(snapshot)
+        showToast('error', 'Промените не можаха да бъдат запазени. Опитайте отново.')
         return null
       }
 
       setDestinations((prev) => prev.map((dest) => (dest.id === id ? data : dest)))
+      showToast('success', 'Промените са запазени')
       return data
     },
-    [supabase, userId]
+    [supabase, userId, showToast]
   )
 
   const deleteDestination = useCallback(
     async (id: string): Promise<boolean> => {
-      setError(null)
+      // Оптимистично изтриване — при грешка връщаме предишното състояние
+      let snapshot: Destination[] = []
+      setDestinations((prev) => {
+        snapshot = prev
+        return prev.filter((dest) => dest.id !== id)
+      })
 
       const { error } = await supabase
         .from('destinations')
@@ -88,22 +97,19 @@ export function useDestinations(
         .eq('user_id', userId)
 
       if (error) {
-        setError('Дестинацията не можа да бъде изтрита. Опитайте отново.')
+        setDestinations(snapshot)
+        showToast('error', 'Дестинацията не можа да бъде изтрита. Опитайте отново.')
         return false
       }
 
-      setDestinations((prev) => prev.filter((dest) => dest.id !== id))
+      showToast('success', 'Дестинацията е изтрита')
       return true
     },
-    [supabase, userId]
+    [supabase, userId, showToast]
   )
-
-  const clearError = useCallback(() => setError(null), [])
 
   return {
     destinations,
-    error,
-    clearError,
     addDestination,
     updateDestination,
     deleteDestination,
