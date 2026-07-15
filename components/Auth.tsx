@@ -1,161 +1,111 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { User } from '@supabase/supabase-js'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Globe } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function Auth() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClient()
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
+  const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setSuccess(null)
-    
-    try {
-      if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        })
-        
-        if (error) {
-          console.error('Sign up error:', error)
-          setError(error.message)
-        } else {
-          console.log('Sign up success:', data)
-          setSuccess('Check your email for the confirmation link!')
-        }
+    setPending(true)
+
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({ email, password })
+      if (error) {
+        setError('Регистрацията не беше успешна. Проверете данните и опитайте отново.')
       } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-        
-        if (error) {
-          console.error('Sign in error:', error)
-          setError(error.message)
-        } else {
-          console.log('Sign in success:', data)
-          setSuccess('Successfully signed in!')
-        }
+        setSuccess('Проверете имейла си за линк за потвърждение!')
       }
-    } catch (err) {
-      console.error('Auth error:', err)
-      setError('An unexpected error occurred')
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        setError('Грешен имейл или парола.')
+      } else {
+        // Сесията е записана в cookies — сървърът ще рендерира приложението
+        router.refresh()
+        return
+      }
     }
-  }
 
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('Sign out error:', error)
-      setError(error.message)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    )
-  }
-
-  if (user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-4 text-center">Welcome!</h2>
-          <p className="text-gray-600 mb-4 text-center">
-            Signed in as: <strong>{user.email}</strong>
-          </p>
-          <button
-            onClick={handleSignOut}
-            className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Sign Out
-          </button>
-        </div>
-      </div>
-    )
+    setPending(false)
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-6 text-center">
-          {isSignUp ? 'Sign Up' : 'Sign In'}
-        </h2>
-        
+    <div className="flex min-h-full items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
+        <div className="mb-6 flex flex-col items-center space-y-2">
+          <Globe className="h-10 w-10 text-primary-600" />
+          <h1 className="text-2xl font-bold text-gray-900">World Explorer</h1>
+          <p className="text-sm text-gray-500">
+            {isSignUp ? 'Създайте акаунт, за да запазвате дестинации' : 'Влезте, за да видите картата си'}
+          </p>
+        </div>
+
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
             {error}
           </div>
         )}
-        
+
         {success && (
-          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+          <div className="mb-4 rounded border border-green-300 bg-green-50 p-3 text-sm text-green-700">
             {success}
           </div>
         )}
-        
-        <form onSubmit={handleAuth} className="space-y-4">
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+            <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
+              Имейл
             </label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              autoComplete="email"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500"
               required
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+            <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
+              Парола
             </label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              autoComplete={isSignUp ? 'new-password' : 'current-password'}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500"
               required
             />
           </div>
-          
+
           <button
             type="submit"
-            className="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors"
+            disabled={pending}
+            className="w-full rounded-lg bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSignUp ? 'Sign Up' : 'Sign In'}
+            {pending ? 'Моля, изчакайте…' : isSignUp ? 'Регистрация' : 'Вход'}
           </button>
         </form>
-        
+
         <div className="mt-4 text-center">
           <button
             onClick={() => {
@@ -163,12 +113,12 @@ export default function Auth() {
               setError(null)
               setSuccess(null)
             }}
-            className="text-primary-600 hover:text-primary-700 text-sm"
+            className="text-sm text-primary-600 hover:text-primary-700"
           >
-            {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+            {isSignUp ? 'Вече имате акаунт? Влезте' : 'Нямате акаунт? Регистрирайте се'}
           </button>
         </div>
       </div>
     </div>
   )
-} 
+}

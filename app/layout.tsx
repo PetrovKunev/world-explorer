@@ -1,20 +1,20 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import 'leaflet/dist/leaflet.css'
 import Footer from '@/components/Footer'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
 export const metadata: Metadata = {
-  title: 'World Explorer - Interactive Travel Map',
-  description: 'An interactive map application for tracking your travel destinations across Europe and the world.',
-  icons: {
-    icon: '/icon.svg',
-    shortcut: '/icon.svg',
-    apple: '/icon.svg',
-  },
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+  title: 'World Explorer — интерактивна карта на пътуванията',
+  description:
+    'Интерактивна карта за проследяване на вашите дестинации в Европа и по света.',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({
@@ -23,18 +23,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-      </head>
+    <html lang="bg">
       <body className={inter.className}>
-        <div className="flex flex-col h-screen">
-          <main className="flex-1 overflow-hidden">
-            {children}
-          </main>
+        <div className="flex h-dvh flex-col">
+          <main className="flex-1 overflow-hidden">{children}</main>
           <Footer />
         </div>
       </body>
     </html>
   )
-} 
+}

@@ -1,8 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Search, Filter, Edit, Trash2, MapPin, Calendar, Star, X } from 'lucide-react'
-import { Destination, DestinationFormData } from '@/types/destination'
+import { Plus, Search, Filter, MapPin, X } from 'lucide-react'
+import {
+  Destination,
+  DestinationInput,
+  DestinationType,
+  DESTINATION_TYPES,
+  DESTINATION_TYPE_KEYS,
+} from '@/types/destination'
 import DestinationForm from './DestinationForm'
 import DestinationCard from './DestinationCard'
 
@@ -10,10 +16,12 @@ interface SidebarProps {
   destinations: Destination[]
   selectedDestination: Destination | null
   onSelectDestination: (destination: Destination | null) => void
-  onAddDestination: (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void
-  onUpdateDestination: (id: string, updates: Partial<Destination>) => void
+  onAddDestination: (destination: DestinationInput) => void
+  onUpdateDestination: (id: string, updates: Partial<DestinationInput>) => void
   onDeleteDestination: (id: string) => void
-  isOpen: boolean
+  // null = по подразбиране: отворен на десктоп, затворен на мобилен
+  isOpen: boolean | null
+  onClose: () => void
 }
 
 export default function Sidebar({
@@ -23,64 +31,67 @@ export default function Sidebar({
   onAddDestination,
   onUpdateDestination,
   onDeleteDestination,
-  isOpen
+  isOpen,
+  onClose,
 }: SidebarProps) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingDestination, setEditingDestination] = useState<Destination | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState<string>('all')
+  const [filterType, setFilterType] = useState<DestinationType | 'all'>('all')
 
-  const filteredDestinations = destinations.filter(dest => {
-    const matchesSearch = dest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         dest.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDestinations = destinations.filter((dest) => {
+    const term = searchTerm.toLowerCase()
+    const matchesSearch =
+      dest.name.toLowerCase().includes(term) ||
+      dest.notes?.toLowerCase().includes(term)
     const matchesFilter = filterType === 'all' || dest.type === filterType
     return matchesSearch && matchesFilter
   })
 
-  const handleAddDestination = (formData: DestinationFormData) => {
-    onAddDestination({
-      ...formData,
-      photos: formData.photos || [],
-      tags: formData.tags || [],
-    })
+  const handleAddDestination = (input: DestinationInput) => {
+    onAddDestination(input)
     setShowAddForm(false)
   }
 
-  const handleUpdateDestination = (formData: DestinationFormData) => {
+  const handleUpdateDestination = (input: DestinationInput) => {
     if (editingDestination) {
-      onUpdateDestination(editingDestination.id, {
-        ...formData,
-        updated_at: new Date().toISOString(),
-      })
+      onUpdateDestination(editingDestination.id, input)
       setEditingDestination(null)
     }
   }
 
   const handleDeleteDestination = (id: string) => {
-    if (confirm('Are you sure you want to delete this destination?')) {
+    if (confirm('Сигурни ли сте, че искате да изтриете тази дестинация?')) {
       onDeleteDestination(id)
     }
   }
 
   return (
-    <div className={`sidebar fixed lg:relative inset-y-0 left-0 z-50 w-full max-w-sm lg:max-w-none lg:w-80 flex flex-col border-r border-gray-200 bg-white transition-all duration-300 ${
-      isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-    }`}>
-      <div className="p-3 sm:p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Destinations</h2>
+    <div
+      className={`sidebar fixed inset-y-0 left-0 z-50 flex w-full max-w-sm flex-col border-r border-gray-200 bg-white transition-transform duration-300 lg:relative lg:w-80 lg:max-w-none ${
+        isOpen === null
+          ? '-translate-x-full lg:translate-x-0'
+          : isOpen
+            ? 'translate-x-0'
+            : '-translate-x-full lg:hidden'
+      }`}
+    >
+      <div className="border-b border-gray-200 p-3 sm:p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Дестинации</h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowAddForm(true)}
-              className="p-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-              aria-label="Add destination"
+              className="rounded-lg bg-primary-600 p-2 text-white transition-colors hover:bg-primary-700"
+              aria-label="Добави дестинация"
+              title="Добави дестинация"
             >
               <Plus className="h-4 w-4" />
             </button>
             <button
-              onClick={() => onSelectDestination(null)}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              aria-label="Close sidebar"
+              onClick={onClose}
+              className="rounded-lg p-2 transition-colors hover:bg-gray-100 lg:hidden"
+              aria-label="Затвори списъка"
             >
               <X className="h-4 w-4 text-gray-600" />
             </button>
@@ -89,13 +100,13 @@ export default function Sidebar({
 
         <div className="space-y-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search destinations..."
+              placeholder="Търсене на дестинации…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-transparent focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -103,28 +114,26 @@ export default function Sidebar({
             <Filter className="h-4 w-4 text-gray-400" />
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm"
+              onChange={(e) => setFilterType(e.target.value as DestinationType | 'all')}
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-primary-500"
             >
-              <option value="all">All types</option>
-              <option value="city">Cities</option>
-              <option value="landmark">Landmarks</option>
-              <option value="restaurant">Restaurants</option>
-              <option value="hotel">Hotels</option>
-              <option value="museum">Museums</option>
-              <option value="park">Parks</option>
-              <option value="other">Other</option>
+              <option value="all">Всички типове</option>
+              {DESTINATION_TYPE_KEYS.map((type) => (
+                <option key={type} value={type}>
+                  {DESTINATION_TYPES[type].emoji} {DESTINATION_TYPES[type].label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
+      <div className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
         {filteredDestinations.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <MapPin className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-            <p>No destinations found</p>
-            <p className="text-sm">Add your first destination to get started!</p>
+          <div className="py-8 text-center text-gray-500">
+            <MapPin className="mx-auto mb-3 h-12 w-12 text-gray-300" />
+            <p>Няма намерени дестинации</p>
+            <p className="text-sm">Добавете първата си дестинация, за да започнете!</p>
           </div>
         ) : (
           filteredDestinations.map((destination) => (
@@ -140,20 +149,21 @@ export default function Sidebar({
         )}
       </div>
 
-      {/* Add/Edit Form Modal */}
+      {/* Модален прозорец за добавяне/редакция */}
       {(showAddForm || editingDestination) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 sm:p-6">
+            <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold">
-                {showAddForm ? 'Add New Destination' : 'Edit Destination'}
+                {showAddForm ? 'Нова дестинация' : 'Редактиране на дестинация'}
               </h3>
               <button
                 onClick={() => {
                   setShowAddForm(false)
                   setEditingDestination(null)
                 }}
-                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                className="rounded-lg p-1 transition-colors hover:bg-gray-100"
+                aria-label="Затвори"
               >
                 <X className="h-5 w-5 text-gray-600" />
               </button>
@@ -171,4 +181,4 @@ export default function Sidebar({
       )}
     </div>
   )
-} 
+}

@@ -1,29 +1,46 @@
+export type DestinationType =
+  | 'city'
+  | 'landmark'
+  | 'restaurant'
+  | 'hotel'
+  | 'museum'
+  | 'park'
+  | 'other'
+
 export interface Destination {
   id: string
   user_id: string
   name: string
   latitude: number
   longitude: number
-  type: 'city' | 'landmark' | 'restaurant' | 'hotel' | 'museum' | 'park' | 'other'
+  type: DestinationType
   visited: boolean
-  visit_date?: string
-  notes?: string
-  rating?: number
+  visit_date: string | null
+  notes: string | null
+  rating: number | null
   photos: string[]
   tags: string[]
   created_at: string
   updated_at: string
 }
 
-export interface DestinationFormData {
-  name: string
-  latitude: number
-  longitude: number
-  type: Destination['type']
-  visited: boolean
-  visit_date?: string
-  notes?: string
-  rating?: number
-  tags?: string[]
-  photos?: string[]
-} 
+// Данни при създаване/редакция — без полетата, които базата генерира
+export type DestinationInput = Omit<
+  Destination,
+  'id' | 'user_id' | 'created_at' | 'updated_at'
+>
+
+export const DESTINATION_TYPES: Record<
+  DestinationType,
+  { label: string; emoji: string; badgeClass: string }
+> = {
+  city: { label: 'Град', emoji: '🏙️', badgeClass: 'bg-blue-100 text-blue-800' },
+  landmark: { label: 'Забележителност', emoji: '🗿', badgeClass: 'bg-purple-100 text-purple-800' },
+  restaurant: { label: 'Ресторант', emoji: '🍽️', badgeClass: 'bg-orange-100 text-orange-800' },
+  hotel: { label: 'Хотел', emoji: '🏨', badgeClass: 'bg-green-100 text-green-800' },
+  museum: { label: 'Музей', emoji: '🏛️', badgeClass: 'bg-yellow-100 text-yellow-800' },
+  park: { label: 'Парк', emoji: '🌳', badgeClass: 'bg-emerald-100 text-emerald-800' },
+  other: { label: 'Друго', emoji: '📍', badgeClass: 'bg-gray-100 text-gray-800' },
+}
+
+export const DESTINATION_TYPE_KEYS = Object.keys(DESTINATION_TYPES) as DestinationType[]

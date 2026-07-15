@@ -1,31 +1,48 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --breakpoint-xs: 475px;
+
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+}
 
 @layer base {
   html {
     font-family: system-ui, sans-serif;
   }
-  
-  /* Mobile-specific optimizations */
+
+  /* Оптимизации за мобилни устройства */
   @media (max-width: 640px) {
     body {
       -webkit-tap-highlight-color: transparent;
     }
-    
-    /* Improve touch targets */
-    button, input, select, textarea {
+
+    /* По-големи докосваеми зони */
+    button,
+    input,
+    select,
+    textarea {
       min-height: 44px;
     }
-    
-    /* Prevent zoom on input focus */
-    input[type="text"],
-    input[type="number"],
-    input[type="email"],
-    input[type="tel"],
-    input[type="url"],
-    input[type="search"],
-    input[type="password"],
+
+    /* Предотвратява автоматичен zoom при фокус върху поле в iOS */
+    input[type='text'],
+    input[type='number'],
+    input[type='email'],
+    input[type='tel'],
+    input[type='url'],
+    input[type='search'],
+    input[type='password'],
+    input[type='date'],
     textarea,
     select {
       font-size: 16px;
@@ -35,83 +52,82 @@
 
 @layer components {
   .map-container {
-    height: calc(100vh - 80px);
-    width: 100%;
     position: relative;
+    height: 100%;
+    width: 100%;
   }
-  
+
   .leaflet-container {
     height: 100% !important;
     width: 100% !important;
     z-index: 1;
   }
-  
+
   .leaflet-control-container {
     z-index: 2;
   }
-  
+
   .destination-marker {
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease;
   }
-  
+
   .destination-marker:hover {
     transform: scale(1.1);
   }
-  
-  /* Temporary marker animation */
+
   .temp-marker {
     cursor: default;
-    animation: pulse 2s infinite;
+    animation: temp-marker-pulse 2s infinite;
   }
-  
-  @keyframes pulse {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.7;
-      transform: scale(1.2);
-    }
-  }
-  
+
   .sidebar {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    border-right: 1px solid rgba(0, 0, 0, 0.1);
   }
-  
+
   .destination-card {
-    transition: all 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
   }
-  
+
   .destination-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   }
-  
-  /* Mobile-specific sidebar styles */
+
   @media (max-width: 1023px) {
     .sidebar {
       background: white;
       backdrop-filter: none;
     }
   }
-  
-  /* Custom scrollbar for mobile */
+
   @media (max-width: 640px) {
     .sidebar::-webkit-scrollbar {
       width: 4px;
     }
-    
+
     .sidebar::-webkit-scrollbar-track {
       background: transparent;
     }
-    
+
     .sidebar::-webkit-scrollbar-thumb {
       background: rgba(0, 0, 0, 0.2);
       border-radius: 2px;
     }
   }
-} 
+}
+
+@keyframes temp-marker-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}

@@ -1,39 +1,31 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { MapPin, Plus, Info, X, Calendar } from 'lucide-react'
-import { Destination } from '@/types/destination'
+import {
+  Destination,
+  DestinationInput,
+  DestinationType,
+  DESTINATION_TYPES,
+  DESTINATION_TYPE_KEYS,
+} from '@/types/destination'
 
-// Fix for default markers in Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
+// Иконите се кешират по тип и статус — иначе всеки render създава
+// нови L.DivIcon обекти и Leaflet пресъздава маркерите
+const iconCache = new Map<string, L.DivIcon>()
 
-// Custom marker icons for different destination types
-const createCustomIcon = (type: Destination['type'], visited: boolean) => {
-  // Primary color is determined by visit status
-  const primaryColor = visited ? '#10B981' : '#F97316' // Green for visited, Orange for planned
-  
-  // Type icons for different destination categories
-  const typeIcons = {
-    city: '🏙️',
-    landmark: '🗿',
-    restaurant: '🍽️',
-    hotel: '🏨',
-    museum: '🏛️',
-    park: '🌳',
-    other: '📍',
-  }
+function getMarkerIcon(type: DestinationType, visited: boolean): L.DivIcon {
+  const key = `${type}-${visited}`
+  const cached = iconCache.get(key)
+  if (cached) return cached
 
-  const icon = typeIcons[type]
-  const statusIcon = visited ? '✅' : '🧳'
+  const primaryColor = visited ? '#10B981' : '#F97316'
+  const emoji = DESTINATION_TYPES[type]?.emoji ?? DESTINATION_TYPES.other.emoji
+  const statusEmoji = visited ? '✅' : '🧳'
 
-  return L.divIcon({
+  const icon = L.divIcon({
     html: `
       <div style="
         background-color: ${primaryColor};
@@ -45,12 +37,10 @@ const createCustomIcon = (type: Destination['type'], visited: boolean) => {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
         font-size: 14px;
-        font-weight: bold;
         position: relative;
       ">
-        ${icon}
+        ${emoji}
         <div style="
           position: absolute;
           bottom: -2px;
@@ -64,7 +54,7 @@ const createCustomIcon = (type: Destination['type'], visited: boolean) => {
           justify-content: center;
           font-size: 8px;
         ">
-          ${statusIcon}
+          ${statusEmoji}
         </div>
       </div>
     `,
@@ -72,113 +62,109 @@ const createCustomIcon = (type: Destination['type'], visited: boolean) => {
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   })
+
+  iconCache.set(key, icon)
+  return icon
 }
+
+const tempMarkerIcon = L.divIcon({
+  html: `
+    <div style="
+      background-color: #EF4444;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+    ">
+      +
+    </div>
+  `,
+  className: 'temp-marker',
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
+})
 
 interface MapComponentProps {
   destinations: Destination[]
   selectedDestination: Destination | null
   onSelectDestination: (destination: Destination | null) => void
-  onAddDestination: (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void
+  onAddDestination: (destination: DestinationInput) => void
 }
 
-// Component to handle map reference and centering
-function MapController({ 
-  selectedDestination, 
-  onAddDestination 
-}: { 
-  selectedDestination: Destination | null
-  onAddDestination: (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void 
-}) {
+// Центрира картата върху избраната дестинация
+function MapController({ selectedDestination }: { selectedDestination: Destination | null }) {
   const map = useMap()
-  
-  // Center map on selected destination
+
   useEffect(() => {
-    if (selectedDestination && map) {
-      console.log('=== CENTERING MAP ON DESTINATION ===')
-      console.log('Destination:', selectedDestination.name)
-      console.log('Coordinates:', selectedDestination.latitude, selectedDestination.longitude)
-      
-      map.setView(
-        [selectedDestination.latitude, selectedDestination.longitude],
-        13,
-        { animate: true, duration: 1 }
-      )
+    if (selectedDestination) {
+      map.setView([selectedDestination.latitude, selectedDestination.longitude], 13, {
+        animate: true,
+      })
     }
   }, [selectedDestination, map])
 
   return null
 }
 
-// Component to handle map click events
-function MapClickHandler({ onAddDestination }: { onAddDestination: (destination: Omit<Destination, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => void }) {
+// Обработва клик върху картата и показва диалог за добавяне
+function MapClickHandler({
+  onAddDestination,
+}: {
+  onAddDestination: (destination: DestinationInput) => void
+}) {
   const [clickPosition, setClickPosition] = useState<{ lat: number; lng: number } | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
-  const [newDestinationName, setNewDestinationName] = useState('')
-  const [newDestinationType, setNewDestinationType] = useState<Destination['type']>('other')
-  const [newDestinationVisited, setNewDestinationVisited] = useState(false)
+  const [name, setName] = useState('')
+  const [type, setType] = useState<DestinationType>('other')
+  const [visited, setVisited] = useState(false)
 
   useMapEvents({
     click: (e) => {
-      // ВАЖНО: Не обработваме клик върху картата, ако диалогът е отворен
-      if (showAddForm) {
-        return
-      }
+      // Не реагираме на кликове, докато диалогът е отворен
+      if (showAddForm) return
 
-      console.log('=== MAP CLICK EVENT ===')
-      console.log('Original Leaflet coordinates:', e.latlng)
-      console.log('Latitude (full precision):', e.latlng.lat.toString())
-      console.log('Longitude (full precision):', e.latlng.lng.toString())
-      console.log('Latitude decimal places:', e.latlng.lat.toString().split('.')[1]?.length || 0)
-      console.log('Longitude decimal places:', e.latlng.lng.toString().split('.')[1]?.length || 0)
-      
       setClickPosition({ lat: e.latlng.lat, lng: e.latlng.lng })
       setShowAddForm(true)
-      setNewDestinationName('')
-      setNewDestinationType('other')
-      setNewDestinationVisited(false)
+      setName('')
+      setType('other')
+      setVisited(false)
     },
   })
 
-  const handleSubmit = () => {
-    console.log('=== SUBMITTING DESTINATION ===')
-    if (!newDestinationName.trim() || !clickPosition) {
-      console.log('Validation failed - name or position missing')
-      return
-    }
+  const closeForm = () => {
+    setShowAddForm(false)
+    setClickPosition(null)
+    setName('')
+    setType('other')
+    setVisited(false)
+  }
 
-    console.log('Destination name:', newDestinationName)
-    console.log('Submitted latitude (full):', clickPosition.lat.toString())
-    console.log('Submitted longitude (full):', clickPosition.lng.toString())
-    
+  const handleSubmit = () => {
+    if (!name.trim() || !clickPosition) return
+
     onAddDestination({
-      name: newDestinationName,
+      name: name.trim(),
       latitude: clickPosition.lat,
       longitude: clickPosition.lng,
-      type: newDestinationType,
-      visited: newDestinationVisited,
-      rating: undefined,
-      visit_date: undefined,
-      notes: undefined,
+      type,
+      visited,
+      rating: null,
+      visit_date: null,
+      notes: null,
       photos: [],
       tags: [],
     })
-    
-    setShowAddForm(false)
-    setClickPosition(null)
-    setNewDestinationName('')
-    setNewDestinationType('other')
-    setNewDestinationVisited(false)
+
+    closeForm()
   }
 
-  const handleCancel = () => {
-    setShowAddForm(false)
-    setClickPosition(null)
-    setNewDestinationName('')
-    setNewDestinationType('other')
-    setNewDestinationVisited(false)
-  }
-
-  // Prevent Enter key from propagating to map
   const handleKeyDown = (e: React.KeyboardEvent) => {
     e.stopPropagation()
     if (e.key === 'Enter') {
@@ -187,126 +173,83 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
     }
     if (e.key === 'Escape') {
       e.preventDefault()
-      handleCancel()
+      closeForm()
     }
   }
 
   return (
     <>
-      {/* Temporary marker */}
-      {clickPosition && (
-        <Marker
-          position={[clickPosition.lat, clickPosition.lng]}
-          icon={L.divIcon({
-            html: `
-              <div style="
-                background-color: #EF4444;
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                border: 2px solid white;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 10px;
-                font-weight: bold;
-                animation: pulse 2s infinite;
-              ">
-                +
-              </div>
-            `,
-            className: 'temp-marker',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10],
-          })}
-        />
-      )}
+      {clickPosition && <Marker position={[clickPosition.lat, clickPosition.lng]} icon={tempMarkerIcon} />}
 
-      {/* Modal dialog for adding destination */}
       {showAddForm && clickPosition && (
-        <div 
-          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black bg-opacity-50"
+        <div
+          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50"
           onClick={(e) => {
             e.stopPropagation()
-            handleCancel()
+            closeForm()
           }}
         >
-          <div 
-            className="bg-white rounded-lg shadow-xl border p-6 max-w-md w-full mx-4"
-            onClick={(e) => {
-              e.stopPropagation()
-            }}
+          <div
+            className="mx-4 w-full max-w-md rounded-lg border bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Plus className="h-5 w-5 text-primary-600" />
-                <h3 className="font-semibold text-gray-900 text-lg">Добави нова дестинация</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Нова дестинация</h3>
               </div>
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleCancel()
-                }}
-                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={closeForm}
+                className="rounded-lg p-1 transition-colors hover:bg-gray-100"
+                aria-label="Затвори"
               >
                 <X className="h-5 w-5 text-gray-600" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
                   Име <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  value={newDestinationName}
-                  onChange={(e) => setNewDestinationName(e.target.value)}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Въведете име на дестинацията"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500"
                   autoFocus
-                  onClick={(e) => e.stopPropagation()}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Тип дестинация <span className="text-red-500">*</span>
-                  </label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Тип</label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <select
-                      value={newDestinationType}
-                      onChange={(e) => setNewDestinationType(e.target.value as Destination['type'])}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none"
-                      onClick={(e) => e.stopPropagation()}
+                      value={type}
+                      onChange={(e) => setType(e.target.value as DestinationType)}
+                      className="w-full appearance-none rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:border-transparent focus:ring-2 focus:ring-primary-500"
                     >
-                      <option value="other">📍 Друго</option>
-                      <option value="city">🏙️ Град</option>
-                      <option value="landmark">🗿 Забележителност</option>
-                      <option value="restaurant">🍽️ Ресторант</option>
-                      <option value="hotel">🏨 Хотел</option>
-                      <option value="museum">🏛️ Музей</option>
-                      <option value="park">🌳 Парк</option>
+                      {DESTINATION_TYPE_KEYS.map((key) => (
+                        <option key={key} value={key}>
+                          {DESTINATION_TYPES[key].emoji} {DESTINATION_TYPES[key].label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Статус <span className="text-red-500">*</span>
-                  </label>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">Статус</label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <select
-                      value={newDestinationVisited ? 'visited' : 'planned'}
-                      onChange={(e) => setNewDestinationVisited(e.target.value === 'visited')}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none"
-                      onClick={(e) => e.stopPropagation()}
+                      value={visited ? 'visited' : 'planned'}
+                      onChange={(e) => setVisited(e.target.value === 'visited')}
+                      className="w-full appearance-none rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:border-transparent focus:ring-2 focus:ring-primary-500"
                     >
                       <option value="planned">🧳 За посещение</option>
                       <option value="visited">✅ Посетена</option>
@@ -315,41 +258,32 @@ function MapClickHandler({ onAddDestination }: { onAddDestination: (destination:
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-3">
+              <div className="rounded-lg bg-gray-50 p-3">
                 <div className="flex items-start space-x-2">
-                  <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+                  <MapPin className="mt-0.5 h-4 w-4 text-gray-500" />
                   <div className="text-sm">
-                    <p className="text-gray-700 font-medium">Координати на местоположението:</p>
-                    <p className="text-gray-600 font-mono text-xs mt-1">
+                    <p className="font-medium text-gray-700">Координати:</p>
+                    <p className="mt-1 font-mono text-xs text-gray-600">
                       {clickPosition.lat.toFixed(6)}, {clickPosition.lng.toFixed(6)}
-                    </p>
-                    <p className="text-gray-500 text-xs mt-1">
-                      Тези координати са заключени и няма да се променят
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+            <div className="mt-6 flex items-center justify-end space-x-3 border-t border-gray-200 pt-4">
               <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleSubmit()
-                }}
-                disabled={!newDestinationName.trim()}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Добави дестинация
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleCancel()
-                }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                onClick={closeForm}
+                className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-200"
               >
                 Отказ
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={!name.trim()}
+                className="rounded-lg bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Добави
               </button>
             </div>
           </div>
@@ -365,81 +299,42 @@ export default function MapComponent({
   onSelectDestination,
   onAddDestination,
 }: MapComponentProps) {
-  const [mapError, setMapError] = useState<string | null>(null)
-
-  // Handle map initialization errors
-  const handleMapReady = () => {
-    setMapError(null)
-  }
-
-  if (mapError) {
-    return (
-      <div className="flex items-center justify-center h-full bg-gray-100">
-        <div className="text-center p-4">
-          <div className="text-red-600 mb-2">Map loading error</div>
-          <div className="text-sm text-gray-600">{mapError}</div>
-          <button 
-            onClick={() => setMapError(null)}
-            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="map-container">
-      <MapContainer
-        center={[48.8566, 2.3522]} // Paris as default center
-        zoom={5}
-        className="leaflet-container"
-        whenReady={() => {
-          handleMapReady()
-        }}
-      >
+      <MapContainer center={[48.8566, 2.3522]} zoom={5} className="leaflet-container">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          eventHandlers={{
-            loading: () => setMapError(null),
-            tileerror: () => setMapError('Failed to load map tiles'),
-          }}
         />
-        
-        <MapController selectedDestination={selectedDestination} onAddDestination={onAddDestination} />
+
+        <MapController selectedDestination={selectedDestination} />
         <MapClickHandler onAddDestination={onAddDestination} />
-        
+
         {destinations.map((destination) => {
-          console.log('=== RENDERING MARKER ===')
-          console.log('Destination:', destination.name)
-          console.log('Display latitude:', destination.latitude.toString())
-          console.log('Display longitude:', destination.longitude.toString())
-          console.log('Display coordinates array:', [destination.latitude, destination.longitude])
+          const typeInfo = DESTINATION_TYPES[destination.type] ?? DESTINATION_TYPES.other
           return (
             <Marker
               key={destination.id}
               position={[destination.latitude, destination.longitude]}
-              icon={createCustomIcon(destination.type, destination.visited)}
+              icon={getMarkerIcon(destination.type, destination.visited)}
               eventHandlers={{
                 click: () => onSelectDestination(destination),
               }}
             >
               <Popup>
-                <div className="p-2 max-w-xs">
-                  <h3 className="font-semibold text-gray-900 mb-1 text-sm">{destination.name}</h3>
-                  <div className="text-xs text-gray-600 space-y-1">
+                <div className="max-w-xs p-2">
+                  <h3 className="mb-1 text-sm font-semibold text-gray-900">{destination.name}</h3>
+                  <div className="space-y-1 text-xs text-gray-600">
                     <div className="flex items-center space-x-1">
                       <MapPin className="h-3 w-3" />
-                      <span>{destination.type}</span>
+                      <span>{typeInfo.label}</span>
                     </div>
                     {destination.visited && (
                       <div className="flex items-center space-x-1 text-green-600">
-                        <span className="text-xs">✓ Visited</span>
+                        <span>✓ Посетена</span>
                         {destination.visit_date && (
-                          <span className="text-xs">
-                            on {new Date(destination.visit_date).toLocaleDateString()}
+                          <span>
+                            на {new Date(destination.visit_date).toLocaleDateString('bg-BG')}
                           </span>
                         )}
                       </div>
@@ -447,13 +342,13 @@ export default function MapComponent({
                     {destination.rating && (
                       <div className="flex items-center space-x-1">
                         <span className="text-yellow-500">★</span>
-                        <span className="text-xs">{destination.rating}/5</span>
+                        <span>{destination.rating}/5</span>
                       </div>
                     )}
                     {destination.notes && (
                       <div className="flex items-start space-x-1">
-                        <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                        <p className="text-xs line-clamp-2">{destination.notes}</p>
+                        <Info className="mt-0.5 h-3 w-3 shrink-0" />
+                        <p className="line-clamp-2">{destination.notes}</p>
                       </div>
                     )}
                   </div>
@@ -463,26 +358,26 @@ export default function MapComponent({
           )
         })}
       </MapContainer>
-      
-      {/* Instructions overlay */}
-      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg border p-3 max-w-xs hidden sm:block">
-        <div className="flex items-center space-x-2 mb-2">
+
+      {/* Кратки инструкции (десктоп) */}
+      <div className="absolute right-4 top-4 hidden max-w-xs rounded-lg border bg-white p-3 shadow-lg sm:block">
+        <div className="mb-2 flex items-center space-x-2">
           <MapPin className="h-4 w-4 text-primary-600" />
-          <h3 className="font-semibold text-sm text-gray-900">How to use</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Как се използва</h3>
         </div>
-        <div className="text-xs text-gray-600 space-y-1">
-          <p>• Click anywhere on the map to add a destination</p>
-          <p>• Click markers to view details</p>
-          <p>• Use the sidebar to manage destinations</p>
+        <div className="space-y-1 text-xs text-gray-600">
+          <p>• Кликнете върху картата, за да добавите дестинация</p>
+          <p>• Кликнете върху маркер за подробности</p>
+          <p>• Управлявайте дестинациите от списъка вляво</p>
         </div>
       </div>
-      
-      {/* Mobile instructions */}
-      <div className="absolute bottom-4 left-4 right-4 sm:hidden bg-white rounded-lg shadow-lg border p-3">
-        <div className="text-xs text-gray-600 text-center">
-          <p>Tap the map to add destinations • Tap markers for details</p>
+
+      {/* Кратки инструкции (мобилни) */}
+      <div className="absolute bottom-4 left-4 right-4 rounded-lg border bg-white p-3 shadow-lg sm:hidden">
+        <div className="text-center text-xs text-gray-600">
+          <p>Докоснете картата, за да добавите дестинация • Докоснете маркер за подробности</p>
         </div>
       </div>
     </div>
   )
-} 
+}
