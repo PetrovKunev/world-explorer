@@ -46,7 +46,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={toast.id}
             role="status"
             className={`pointer-events-auto flex w-full max-w-sm items-center space-x-2 rounded-lg px-4 py-3 text-sm text-white shadow-lg ${
-              toast.kind === 'success' ? 'bg-gray-900' : 'bg-red-600'
+              toast.kind === 'success' ? 'bg-gray-900 dark:bg-gray-700' : 'bg-red-600'
             }`}
           >
             {toast.kind === 'success' ? (

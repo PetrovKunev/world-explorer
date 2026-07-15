@@ -13,8 +13,8 @@ import { Destination, DestinationInput } from '@/types/destination'
 const MapComponent = dynamic(() => import('@/components/MapComponent'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full animate-pulse items-center justify-center bg-gray-200">
-      <div className="flex flex-col items-center space-y-3 text-gray-500">
+    <div className="flex h-full animate-pulse items-center justify-center bg-gray-200 dark:bg-gray-800">
+      <div className="flex flex-col items-center space-y-3 text-gray-500 dark:text-gray-400">
         <MapPin className="h-8 w-8" />
         <div className="text-sm">Зареждане на картата…</div>
       </div>
@@ -75,11 +75,11 @@ function AppShellInner({ user, initialDestinations, initialError }: AppShellProp
       <Header onToggleSidebar={toggleSidebar} userEmail={user.email} />
 
       {loadError && (
-        <div className="flex items-center justify-between border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+        <div className="flex items-center justify-between border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
           <span>{loadError}</span>
           <button
             onClick={() => setLoadError(null)}
-            className="rounded p-1 transition-colors hover:bg-red-100"
+            className="rounded p-1 transition-colors hover:bg-red-100 dark:hover:bg-red-900"
             aria-label="Затвори съобщението"
           >
             <X className="h-4 w-4" />
@@ -97,6 +97,7 @@ function AppShellInner({ user, initialDestinations, initialError }: AppShellProp
         )}
 
         <Sidebar
+          userId={user.id}
           destinations={destinations}
           selectedDestination={selectedDestination}
           onSelectDestination={(dest) => {

@@ -23,8 +23,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="bg">
+    <html lang="bg" suppressHydrationWarning>
       <body className={inter.className}>
+        {/* Прилага темата преди първото рендиране, за да няма светкавица */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`,
+          }}
+        />
         {/* React 19 повдига link елемента в <head> — по-бърза първа заявка към tile сървъра */}
         <link rel="preconnect" href="https://tile.openstreetmap.org" />
         <div className="flex h-dvh flex-col">

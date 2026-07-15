@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toaster'
+import { PHOTOS_BUCKET, photoStoragePath } from '@/lib/photos'
 import { Destination, DestinationInput } from '@/types/destination'
 
 // Празните стойности се нормализират до null — undefined ключовете се
@@ -100,6 +101,15 @@ export function useDestinations(userId: string, initialDestinations: Destination
         setDestinations(snapshot)
         showToast('error', 'Дестинацията не можа да бъде изтрита. Опитайте отново.')
         return false
+      }
+
+      // Изчистваме снимките на дестинацията от Storage (best effort)
+      const removed = snapshot.find((dest) => dest.id === id)
+      const photoPaths = (removed?.photos ?? [])
+        .map(photoStoragePath)
+        .filter((path): path is string => path !== null)
+      if (photoPaths.length > 0) {
+        void supabase.storage.from(PHOTOS_BUCKET).remove(photoPaths)
       }
 
       showToast('success', 'Дестинацията е изтрита')

@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { MapPin, Calendar, Star, Pencil, Trash2 } from 'lucide-react'
 import { Destination, DESTINATION_TYPES } from '@/types/destination'
 
@@ -24,8 +25,8 @@ export default function DestinationCard({
     <div
       className={`destination-card cursor-pointer rounded-lg border p-3 transition-all duration-200 sm:p-4 ${
         isSelected
-          ? 'border-primary-500 bg-primary-50 shadow-md ring-2 ring-primary-200'
-          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+          ? 'border-primary-500 bg-primary-50 shadow-md ring-2 ring-primary-200 dark:bg-primary-900/30 dark:ring-primary-800'
+          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:hover:border-gray-600'
       }`}
       onClick={onSelect}
     >
@@ -33,12 +34,12 @@ export default function DestinationCard({
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex items-center space-x-2">
             <span className="text-base sm:text-lg">{typeInfo.emoji}</span>
-            <h3 className="truncate text-sm font-medium text-gray-900 sm:text-base">
+            <h3 className="truncate text-sm font-medium text-gray-900 sm:text-base dark:text-gray-100">
               {destination.name}
             </h3>
           </div>
 
-          <div className="mb-2 flex flex-col space-y-1 text-xs text-gray-600 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0 sm:text-sm">
+          <div className="mb-2 flex flex-col space-y-1 text-xs text-gray-600 sm:flex-row sm:items-center sm:space-x-4 sm:space-y-0 sm:text-sm dark:text-gray-400">
             <div className="flex items-center space-x-1">
               <MapPin className="h-3 w-3" />
               <span className="truncate">
@@ -65,7 +66,7 @@ export default function DestinationCard({
               {destination.rating && (
                 <div className="flex items-center space-x-1">
                   <Star className="h-3 w-3 fill-current text-yellow-500" />
-                  <span className="text-xs text-gray-600">{destination.rating}</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">{destination.rating}</span>
                 </div>
               )}
 
@@ -75,7 +76,7 @@ export default function DestinationCard({
                     e.stopPropagation()
                     onEdit()
                   }}
-                  className="p-1.5 text-gray-400 transition-colors hover:text-gray-600 sm:p-1"
+                  className="p-1.5 text-gray-400 transition-colors hover:text-gray-600 sm:p-1 dark:hover:text-gray-200"
                   aria-label="Редактирай дестинацията"
                 >
                   <Pencil className="h-3.5 w-3.5 sm:h-3 sm:w-3" />
@@ -94,8 +95,23 @@ export default function DestinationCard({
             </div>
           </div>
 
+          {destination.photos && destination.photos.length > 0 && (
+            <div className="mt-2 flex gap-1.5">
+              {destination.photos.slice(0, 3).map((url) => (
+                <div key={url} className="relative h-12 w-16 overflow-hidden rounded">
+                  <Image src={url} alt="" fill sizes="64px" className="object-cover" />
+                </div>
+              ))}
+              {destination.photos.length > 3 && (
+                <div className="flex h-12 w-16 items-center justify-center rounded bg-gray-100 text-xs text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                  +{destination.photos.length - 3}
+                </div>
+              )}
+            </div>
+          )}
+
           {destination.notes && (
-            <p className="mt-2 line-clamp-2 text-xs text-gray-500">{destination.notes}</p>
+            <p className="mt-2 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">{destination.notes}</p>
           )}
 
           {destination.tags && destination.tags.length > 0 && (
@@ -103,7 +119,7 @@ export default function DestinationCard({
               {destination.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600"
+                  className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300"
                 >
                   {tag}
                 </span>

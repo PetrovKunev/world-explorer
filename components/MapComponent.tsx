@@ -2,8 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet'
+import MarkerClusterGroup from 'react-leaflet-markercluster'
 import L from 'leaflet'
 import { MapPin, Plus, Info, X, Calendar, Search } from 'lucide-react'
+import Image from 'next/image'
+import 'react-leaflet-markercluster/styles'
 import {
   Destination,
   DestinationInput,
@@ -225,7 +228,7 @@ function GeocodingSearch({
           value={query}
           onChange={(e) => handleChange(e.target.value)}
           placeholder="Търсене на място…"
-          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-9 text-sm shadow-lg focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500"
+          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-9 text-sm shadow-lg focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
         />
         {query && (
           <button
@@ -239,9 +242,9 @@ function GeocodingSearch({
       </div>
 
       {open && (
-        <div className="mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div className="mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
           {results.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-gray-500">
+            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
               {searching ? 'Търсене…' : 'Няма намерени резултати'}
             </div>
           ) : (
@@ -256,7 +259,7 @@ function GeocodingSearch({
                   })
                   clear()
                 }}
-                className="block w-full truncate px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                className="block w-full truncate px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700"
                 title={result.display_name}
               >
                 {result.display_name}
@@ -321,26 +324,26 @@ function AddDestinationDialog({
       }}
     >
       <div
-        className="mx-4 w-full max-w-md rounded-lg border bg-white p-6 shadow-xl"
+        className="mx-4 w-full max-w-md rounded-lg border bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Plus className="h-5 w-5 text-primary-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Нова дестинация</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Нова дестинация</h3>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 transition-colors hover:bg-gray-100"
+            className="rounded-lg p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
             aria-label="Затвори"
           >
-            <X className="h-5 w-5 text-gray-600" />
+            <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Име <span className="text-red-500">*</span>
             </label>
             <input
@@ -349,20 +352,20 @@ function AddDestinationDialog({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Въведете име на дестинацията"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
               autoFocus
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Тип</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Тип</label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as DestinationType)}
-                  className="w-full appearance-none rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:border-transparent focus:ring-2 focus:ring-primary-500"
+                  className="w-full appearance-none rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:border-transparent focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
                   {DESTINATION_TYPE_KEYS.map((key) => (
                     <option key={key} value={key}>
@@ -374,13 +377,13 @@ function AddDestinationDialog({
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Статус</label>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Статус</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <select
                   value={visited ? 'visited' : 'planned'}
                   onChange={(e) => setVisited(e.target.value === 'visited')}
-                  className="w-full appearance-none rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:border-transparent focus:ring-2 focus:ring-primary-500"
+                  className="w-full appearance-none rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:border-transparent focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
                   <option value="planned">🧳 За посещение</option>
                   <option value="visited">✅ Посетена</option>
@@ -389,12 +392,12 @@ function AddDestinationDialog({
             </div>
           </div>
 
-          <div className="rounded-lg bg-gray-50 p-3">
+          <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50">
             <div className="flex items-start space-x-2">
-              <MapPin className="mt-0.5 h-4 w-4 text-gray-500" />
+              <MapPin className="mt-0.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
               <div className="text-sm">
-                <p className="font-medium text-gray-700">Координати:</p>
-                <p className="mt-1 font-mono text-xs text-gray-600">
+                <p className="font-medium text-gray-700 dark:text-gray-300">Координати:</p>
+                <p className="mt-1 font-mono text-xs text-gray-600 dark:text-gray-400">
                   {draft.lat.toFixed(6)}, {draft.lng.toFixed(6)}
                 </p>
               </div>
@@ -402,10 +405,10 @@ function AddDestinationDialog({
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-end space-x-3 border-t border-gray-200 pt-4">
+        <div className="mt-6 flex items-center justify-end space-x-3 border-t border-gray-200 pt-4 dark:border-gray-700">
           <button
             onClick={onClose}
-            className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-200"
+            className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
           >
             Отказ
           </button>
@@ -462,6 +465,8 @@ export default function MapComponent({
 
         {addDraft && <Marker position={[addDraft.lat, addDraft.lng]} icon={tempMarkerIcon} />}
 
+        {/* Близките маркери се групират в клъстери */}
+        <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} maxClusterRadius={60}>
         {destinations.map((destination) => {
           const typeInfo = DESTINATION_TYPES[destination.type] ?? DESTINATION_TYPES.other
           return (
@@ -480,8 +485,19 @@ export default function MapComponent({
             >
               <Popup>
                 <div className="max-w-xs p-2">
-                  <h3 className="mb-1 text-sm font-semibold text-gray-900">{destination.name}</h3>
-                  <div className="space-y-1 text-xs text-gray-600">
+                  {destination.photos.length > 0 && (
+                    <div className="relative mb-2 h-24 w-52 overflow-hidden rounded">
+                      <Image
+                        src={destination.photos[0]}
+                        alt={destination.name}
+                        fill
+                        sizes="208px"
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <h3 className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">{destination.name}</h3>
+                  <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
                     <div className="flex items-center space-x-1">
                       <MapPin className="h-3 w-3" />
                       <span>{typeInfo.label}</span>
@@ -514,6 +530,7 @@ export default function MapComponent({
             </Marker>
           )
         })}
+        </MarkerClusterGroup>
       </MapContainer>
 
       <GeocodingSearch onSelect={handleGeocodeSelect} />
@@ -533,29 +550,29 @@ export default function MapComponent({
       {/* Кратки инструкции */}
       {showHelp && (
         <>
-          <div className="absolute right-4 top-4 hidden max-w-xs rounded-lg border bg-white p-3 shadow-lg sm:block">
+          <div className="absolute right-4 top-4 hidden max-w-xs rounded-lg border bg-white p-3 shadow-lg sm:block dark:border-gray-700 dark:bg-gray-800">
             <div className="mb-2 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <MapPin className="h-4 w-4 text-primary-600" />
-                <h3 className="text-sm font-semibold text-gray-900">Как се използва</h3>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Как се използва</h3>
               </div>
               <button
                 onClick={dismissHelp}
-                className="rounded p-0.5 text-gray-400 transition-colors hover:text-gray-600"
+                className="rounded p-0.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
                 aria-label="Скрий инструкциите"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="space-y-1 text-xs text-gray-600">
+            <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
               <p>• Кликнете върху картата или потърсете място по име</p>
               <p>• Кликнете върху маркер за подробности</p>
               <p>• Влачете маркер, за да коригирате местоположението</p>
             </div>
           </div>
 
-          <div className="absolute bottom-4 left-4 right-4 rounded-lg border bg-white p-3 shadow-lg sm:hidden">
-            <div className="flex items-center justify-between text-xs text-gray-600">
+          <div className="absolute bottom-4 left-4 right-4 rounded-lg border bg-white p-3 shadow-lg sm:hidden dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
               <p className="flex-1 text-center">
                 Докоснете картата или потърсете място, за да добавите дестинация
               </p>

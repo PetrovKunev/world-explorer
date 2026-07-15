@@ -14,6 +14,7 @@ import DestinationCard from './DestinationCard'
 import ConfirmDialog from './ConfirmDialog'
 
 interface SidebarProps {
+  userId: string
   destinations: Destination[]
   selectedDestination: Destination | null
   onSelectDestination: (destination: Destination | null) => void
@@ -26,6 +27,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({
+  userId,
   destinations,
   selectedDestination,
   onSelectDestination,
@@ -64,7 +66,7 @@ export default function Sidebar({
 
   return (
     <div
-      className={`sidebar fixed inset-y-0 left-0 z-50 flex w-full max-w-sm flex-col border-r border-gray-200 bg-white transition-transform duration-300 lg:relative lg:w-80 lg:max-w-none ${
+      className={`sidebar fixed inset-y-0 left-0 z-50 flex w-full max-w-sm flex-col border-r border-gray-200 bg-white transition-transform duration-300 lg:relative lg:w-80 lg:max-w-none dark:border-gray-700 dark:bg-gray-900 ${
         isOpen === null
           ? '-translate-x-full lg:translate-x-0'
           : isOpen
@@ -72,9 +74,9 @@ export default function Sidebar({
             : '-translate-x-full lg:hidden'
       }`}
     >
-      <div className="border-b border-gray-200 p-3 sm:p-4">
+      <div className="border-b border-gray-200 p-3 sm:p-4 dark:border-gray-700">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Дестинации</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Дестинации</h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setShowAddForm(true)}
@@ -86,10 +88,10 @@ export default function Sidebar({
             </button>
             <button
               onClick={onClose}
-              className="rounded-lg p-2 transition-colors hover:bg-gray-100 lg:hidden"
+              className="rounded-lg p-2 transition-colors hover:bg-gray-100 lg:hidden dark:hover:bg-gray-700"
               aria-label="Затвори списъка"
             >
-              <X className="h-4 w-4 text-gray-600" />
+              <X className="h-4 w-4 text-gray-600 dark:text-gray-300" />
             </button>
           </div>
         </div>
@@ -102,7 +104,7 @@ export default function Sidebar({
               placeholder="Търсене на дестинации…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-transparent focus:ring-2 focus:ring-primary-500"
+              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 text-sm focus:border-transparent focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
             />
           </div>
 
@@ -111,7 +113,7 @@ export default function Sidebar({
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as DestinationType | 'all')}
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-primary-500"
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             >
               <option value="all">Всички типове</option>
               {DESTINATION_TYPE_KEYS.map((type) => (
@@ -126,8 +128,8 @@ export default function Sidebar({
 
       <div className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
         {filteredDestinations.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">
-            <MapPin className="mx-auto mb-3 h-12 w-12 text-gray-300" />
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+            <MapPin className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-gray-600" />
             <p>Няма намерени дестинации</p>
             <p className="text-sm">Добавете първата си дестинация, за да започнете!</p>
           </div>
@@ -148,9 +150,9 @@ export default function Sidebar({
       {/* Модален прозорец за добавяне/редакция */}
       {(showAddForm || editingDestination) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 sm:p-6">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 sm:p-6 dark:bg-gray-800">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
+              <h3 className="text-lg font-semibold dark:text-gray-100">
                 {showAddForm ? 'Нова дестинация' : 'Редактиране на дестинация'}
               </h3>
               <button
@@ -158,13 +160,14 @@ export default function Sidebar({
                   setShowAddForm(false)
                   setEditingDestination(null)
                 }}
-                className="rounded-lg p-1 transition-colors hover:bg-gray-100"
+                className="rounded-lg p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
                 aria-label="Затвори"
               >
-                <X className="h-5 w-5 text-gray-600" />
+                <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </button>
             </div>
             <DestinationForm
+              userId={userId}
               initialData={editingDestination || undefined}
               onSubmit={showAddForm ? handleAddDestination : handleUpdateDestination}
               onCancel={() => {
