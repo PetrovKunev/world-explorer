@@ -56,11 +56,22 @@ export default function DestinationCard({
           </div>
 
           <div className="flex items-center justify-between">
-            <span
-              className={`rounded-full px-2 py-1 text-xs font-medium ${typeInfo.badgeClass}`}
-            >
-              {typeInfo.label}
-            </span>
+            <div className="flex flex-wrap items-center gap-1">
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-medium ${typeInfo.badgeClass}`}
+              >
+                {typeInfo.label}
+              </span>
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-medium ${
+                  destination.visited
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                }`}
+              >
+                {destination.visited ? '✅ Посетена' : '🧳 За посещение'}
+              </span>
+            </div>
 
             <div className="flex items-center space-x-1">
               {destination.rating && (

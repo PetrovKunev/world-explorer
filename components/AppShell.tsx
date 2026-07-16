@@ -91,7 +91,7 @@ function AppShellInner({ user, initialDestinations, initialError }: AppShellProp
         {/* Затъмняване зад списъка на мобилни устройства */}
         {sidebarOpen === true && (
           <div
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-[1050] bg-black/50 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}

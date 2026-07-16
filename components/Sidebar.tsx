@@ -42,6 +42,7 @@ export default function Sidebar({
   const [deletingDestination, setDeletingDestination] = useState<Destination | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<DestinationType | 'all'>('all')
+  const [filterVisited, setFilterVisited] = useState<'all' | 'visited' | 'planned'>('all')
 
   const filteredDestinations = destinations.filter((dest) => {
     const term = searchTerm.toLowerCase()
@@ -49,7 +50,9 @@ export default function Sidebar({
       dest.name.toLowerCase().includes(term) ||
       dest.notes?.toLowerCase().includes(term)
     const matchesFilter = filterType === 'all' || dest.type === filterType
-    return matchesSearch && matchesFilter
+    const matchesVisited =
+      filterVisited === 'all' || (filterVisited === 'visited') === dest.visited
+    return matchesSearch && matchesFilter && matchesVisited
   })
 
   const handleAddDestination = (input: DestinationInput) => {
@@ -65,8 +68,9 @@ export default function Sidebar({
   }
 
   return (
+    <>
     <div
-      className={`sidebar fixed inset-y-0 left-0 z-50 flex w-full max-w-sm flex-col border-r border-gray-200 bg-white transition-transform duration-300 lg:relative lg:w-80 lg:max-w-none dark:border-gray-700 dark:bg-gray-900 ${
+      className={`sidebar fixed inset-y-0 left-0 z-[1100] flex w-full max-w-sm flex-col border-r border-gray-200 bg-white transition-transform duration-300 lg:relative lg:w-80 lg:max-w-none dark:border-gray-700 dark:bg-gray-900 ${
         isOpen === null
           ? '-translate-x-full lg:translate-x-0'
           : isOpen
@@ -123,6 +127,28 @@ export default function Sidebar({
               ))}
             </select>
           </div>
+
+          <div className="grid grid-cols-3 gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+            {(
+              [
+                ['all', 'Всички'],
+                ['visited', 'Посетени'],
+                ['planned', 'За посещение'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => setFilterVisited(value)}
+                className={`rounded-md px-1 py-1.5 text-xs font-medium transition-colors ${
+                  filterVisited === value
+                    ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-gray-100'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -146,10 +172,12 @@ export default function Sidebar({
           ))
         )}
       </div>
+    </div>
 
-      {/* Модален прозорец за добавяне/редакция */}
+      {/* Модален прозорец за добавяне/редакция — извън сайдбара, защото
+          transition-transform го прави containing block за fixed елементи */}
       {(showAddForm || editingDestination) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4">
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-4 sm:p-6 dark:bg-gray-800">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold dark:text-gray-100">
@@ -192,6 +220,6 @@ export default function Sidebar({
           onCancel={() => setDeletingDestination(null)}
         />
       )}
-    </div>
+    </>
   )
 }
