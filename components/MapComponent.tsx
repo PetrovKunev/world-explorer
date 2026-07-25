@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-markercluster'
 import L from 'leaflet'
-import { MapPin, Plus, Info, X, Calendar, Search } from 'lucide-react'
+import { MapPin, Plus, Info, X, Calendar, Search, LocateFixed, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import 'react-leaflet-markercluster/styles'
 import {
@@ -14,6 +14,7 @@ import {
   DESTINATION_TYPES,
   DESTINATION_TYPE_KEYS,
 } from '@/types/destination'
+import { useToast } from '@/components/Toaster'
 
 // Иконите се кешират по тип и статус — иначе всеки render създава
 // нови L.DivIcon обекти и Leaflet пресъздава маркерите
@@ -93,6 +94,37 @@ const tempMarkerIcon = L.divIcon({
   iconSize: [20, 20],
   iconAnchor: [10, 10],
 })
+
+// Син пулсиращ маркер за текущото местоположение на потребителя
+const userLocationIcon = L.divIcon({
+  html: `
+    <div style="position: relative; width: 18px; height: 18px;">
+      <div class="user-location-pulse" style="
+        position: absolute;
+        inset: -8px;
+        border-radius: 50%;
+        background-color: rgba(59, 130, 246, 0.3);
+      "></div>
+      <div style="
+        position: absolute;
+        inset: 0;
+        background-color: #3B82F6;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      "></div>
+    </div>
+  `,
+  className: 'user-location-marker',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+})
+
+interface UserPosition {
+  lat: number
+  lng: number
+  accuracy: number
+}
 
 interface AddDraft {
   lat: number
@@ -434,6 +466,9 @@ export default function MapComponent({
 }: MapComponentProps) {
   const [map, setMap] = useState<L.Map | null>(null)
   const [addDraft, setAddDraft] = useState<AddDraft | null>(null)
+  const [userPosition, setUserPosition] = useState<UserPosition | null>(null)
+  const [locating, setLocating] = useState(false)
+  const showToast = useToast()
   // Картата се зарежда само в браузъра (dynamic, ssr: false) — localStorage е достъпен
   const [showHelp, setShowHelp] = useState(
     () => localStorage.getItem('world-explorer-hide-help') !== '1'
@@ -447,6 +482,45 @@ export default function MapComponent({
   const handleGeocodeSelect = (result: { lat: number; lng: number; name: string }) => {
     map?.flyTo([result.lat, result.lng], 12)
     setAddDraft({ lat: result.lat, lng: result.lng, name: result.name })
+  }
+
+  const handleLocate = () => {
+    if (!('geolocation' in navigator)) {
+      showToast('error', 'Браузърът не поддържа определяне на местоположение.')
+      return
+    }
+    // Geolocation API работи само в защитен контекст (HTTPS или localhost)
+    if (!window.isSecureContext) {
+      showToast('error', 'Определянето на местоположение изисква HTTPS връзка.')
+      return
+    }
+
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords
+        setUserPosition({ lat: latitude, lng: longitude, accuracy })
+        setLocating(false)
+        map?.flyTo([latitude, longitude], Math.max(map.getZoom(), 15))
+      },
+      (error) => {
+        setLocating(false)
+        const messages: Record<number, string> = {
+          [error.PERMISSION_DENIED]:
+            'Достъпът до местоположението е отказан. Разрешете го от настройките на браузъра.',
+          [error.POSITION_UNAVAILABLE]: 'Местоположението не може да бъде определено.',
+          [error.TIMEOUT]: 'Определянето на местоположението отне твърде дълго. Опитайте отново.',
+        }
+        showToast('error', messages[error.code] ?? 'Грешка при определяне на местоположението.')
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    )
+  }
+
+  const markUserLocation = () => {
+    if (!userPosition) return
+    map?.closePopup()
+    setAddDraft({ lat: userPosition.lat, lng: userPosition.lng, name: '' })
   }
 
   return (
@@ -464,6 +538,37 @@ export default function MapComponent({
         />
 
         {addDraft && <Marker position={[addDraft.lat, addDraft.lng]} icon={tempMarkerIcon} />}
+
+        {userPosition && (
+          <>
+            <Circle
+              center={[userPosition.lat, userPosition.lng]}
+              radius={userPosition.accuracy}
+              pathOptions={{ color: '#3B82F6', weight: 1, fillColor: '#3B82F6', fillOpacity: 0.1 }}
+            />
+            <Marker position={[userPosition.lat, userPosition.lng]} icon={userLocationIcon}>
+              <Popup>
+                <div className="p-2 text-center">
+                  <p className="mb-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    Вие сте тук
+                  </p>
+                  <p className="mb-2 font-mono text-xs text-gray-600 dark:text-gray-400">
+                    {userPosition.lat.toFixed(6)}, {userPosition.lng.toFixed(6)}
+                    <br />
+                    точност ±{Math.round(userPosition.accuracy)} м
+                  </p>
+                  <button
+                    onClick={markUserLocation}
+                    className="inline-flex items-center space-x-1 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-700"
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span>Отбележи това място</span>
+                  </button>
+                </div>
+              </Popup>
+            </Marker>
+          </>
+        )}
 
         {/* Близките маркери се групират в клъстери */}
         <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} maxClusterRadius={60}>
@@ -535,6 +640,20 @@ export default function MapComponent({
 
       <GeocodingSearch onSelect={handleGeocodeSelect} />
 
+      <button
+        onClick={handleLocate}
+        disabled={locating}
+        className="absolute bottom-20 right-4 z-[1000] rounded-lg border border-gray-300 bg-white p-2.5 text-gray-700 shadow-lg transition-colors hover:bg-gray-50 disabled:cursor-wait sm:bottom-10 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+        title="Моето местоположение"
+        aria-label="Моето местоположение"
+      >
+        {locating ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <LocateFixed className="h-5 w-5" />
+        )}
+      </button>
+
       {addDraft && (
         <AddDestinationDialog
           key={`${addDraft.lat},${addDraft.lng}`}
@@ -568,6 +687,7 @@ export default function MapComponent({
               <p>• Кликнете върху картата или потърсете място по име</p>
               <p>• Кликнете върху маркер за подробности</p>
               <p>• Влачете маркер, за да коригирате местоположението</p>
+              <p>• Използвайте бутона за GPS, за да отбележите къде се намирате</p>
             </div>
           </div>
 
