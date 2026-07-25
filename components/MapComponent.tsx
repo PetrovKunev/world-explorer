@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-markercluster'
 import L from 'leaflet'
-import { MapPin, Plus, Info, X, Calendar, Search, LocateFixed, Loader2 } from 'lucide-react'
+import { MapPin, Plus, Info, X, Calendar, Search, LocateFixed, Loader2, Navigation } from 'lucide-react'
 import Image from 'next/image'
 import 'react-leaflet-markercluster/styles'
 import {
@@ -468,6 +468,12 @@ export default function MapComponent({
   const [addDraft, setAddDraft] = useState<AddDraft | null>(null)
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null)
   const [locating, setLocating] = useState(false)
+  const [following, setFollowing] = useState(false)
+  const watchIdRef = useRef<number | null>(null)
+  // При ръчно местене на картата спираме автоматичното центриране,
+  // но следенето (маркерът) продължава да се обновява
+  const autoPanRef = useRef(true)
+  const hadFixRef = useRef(false)
   const showToast = useToast()
   // Картата се зарежда само в браузъра (dynamic, ssr: false) — localStorage е достъпен
   const [showHelp, setShowHelp] = useState(
@@ -484,16 +490,37 @@ export default function MapComponent({
     setAddDraft({ lat: result.lat, lng: result.lng, name: result.name })
   }
 
-  const handleLocate = () => {
+  const geolocationReady = () => {
     if (!('geolocation' in navigator)) {
       showToast('error', 'Браузърът не поддържа определяне на местоположение.')
-      return
+      return false
     }
     // Geolocation API работи само в защитен контекст (HTTPS или localhost)
     if (!window.isSecureContext) {
       showToast('error', 'Определянето на местоположение изисква HTTPS връзка.')
+      return false
+    }
+    return true
+  }
+
+  const geoErrorMessage = (error: GeolocationPositionError) => {
+    const messages: Record<number, string> = {
+      [error.PERMISSION_DENIED]:
+        'Достъпът до местоположението е отказан. Разрешете го от настройките на браузъра.',
+      [error.POSITION_UNAVAILABLE]: 'Местоположението не може да бъде определено.',
+      [error.TIMEOUT]: 'Определянето на местоположението отне твърде дълго. Опитайте отново.',
+    }
+    return messages[error.code] ?? 'Грешка при определяне на местоположението.'
+  }
+
+  const handleLocate = () => {
+    // При активно следене бутонът само центрира картата отново върху вас
+    if (following && userPosition) {
+      autoPanRef.current = true
+      map?.flyTo([userPosition.lat, userPosition.lng], Math.max(map.getZoom(), 15))
       return
     }
+    if (!geolocationReady()) return
 
     setLocating(true)
     navigator.geolocation.getCurrentPosition(
@@ -505,17 +532,75 @@ export default function MapComponent({
       },
       (error) => {
         setLocating(false)
-        const messages: Record<number, string> = {
-          [error.PERMISSION_DENIED]:
-            'Достъпът до местоположението е отказан. Разрешете го от настройките на браузъра.',
-          [error.POSITION_UNAVAILABLE]: 'Местоположението не може да бъде определено.',
-          [error.TIMEOUT]: 'Определянето на местоположението отне твърде дълго. Опитайте отново.',
-        }
-        showToast('error', messages[error.code] ?? 'Грешка при определяне на местоположението.')
+        showToast('error', geoErrorMessage(error))
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     )
   }
+
+  const stopFollowing = () => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+    setFollowing(false)
+  }
+
+  const toggleFollow = () => {
+    if (following) {
+      stopFollowing()
+      return
+    }
+    if (!geolocationReady()) return
+
+    autoPanRef.current = true
+    hadFixRef.current = false
+    setFollowing(true)
+    // Без timeout — при watchPosition изтичането би вдигало грешка
+    // на всеки интервал без ново местоположение (напр. на закрито)
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude, accuracy } = position.coords
+        setUserPosition({ lat: latitude, lng: longitude, accuracy })
+        if (!map) return
+        if (!hadFixRef.current) {
+          hadFixRef.current = true
+          map.flyTo([latitude, longitude], Math.max(map.getZoom(), 15))
+        } else if (autoPanRef.current) {
+          map.panTo([latitude, longitude])
+        }
+      },
+      (error) => {
+        showToast('error', geoErrorMessage(error))
+        // Без разрешение следенето не може да продължи
+        if (error.code === error.PERMISSION_DENIED) {
+          stopFollowing()
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 0 }
+    )
+  }
+
+  // Ръчното влачене на картата изключва автоматичното центриране
+  useEffect(() => {
+    if (!map || !following) return
+    const onDragStart = () => {
+      autoPanRef.current = false
+    }
+    map.on('dragstart', onDragStart)
+    return () => {
+      map.off('dragstart', onDragStart)
+    }
+  }, [map, following])
+
+  // Спираме следенето при затваряне на компонента
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+      }
+    }
+  }, [])
 
   const markUserLocation = () => {
     if (!userPosition) return
@@ -640,19 +725,35 @@ export default function MapComponent({
 
       <GeocodingSearch onSelect={handleGeocodeSelect} />
 
-      <button
-        onClick={handleLocate}
-        disabled={locating}
-        className="absolute bottom-20 right-4 z-[1000] rounded-lg border border-gray-300 bg-white p-2.5 text-gray-700 shadow-lg transition-colors hover:bg-gray-50 disabled:cursor-wait sm:bottom-10 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-        title="Моето местоположение"
-        aria-label="Моето местоположение"
-      >
-        {locating ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
-        ) : (
-          <LocateFixed className="h-5 w-5" />
-        )}
-      </button>
+      <div className="absolute bottom-20 right-4 z-[1000] flex flex-col space-y-2 sm:bottom-10">
+        <button
+          onClick={handleLocate}
+          disabled={locating}
+          className="rounded-lg border border-gray-300 bg-white p-2.5 text-gray-700 shadow-lg transition-colors hover:bg-gray-50 disabled:cursor-wait dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+          title="Моето местоположение"
+          aria-label="Моето местоположение"
+        >
+          {locating ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <LocateFixed className="h-5 w-5" />
+          )}
+        </button>
+
+        <button
+          onClick={toggleFollow}
+          className={`rounded-lg border p-2.5 shadow-lg transition-colors ${
+            following
+              ? 'border-primary-600 bg-primary-600 text-white hover:bg-primary-700'
+              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+          }`}
+          title={following ? 'Спри следенето' : 'Следвай ме'}
+          aria-label={following ? 'Спри следенето' : 'Следвай ме'}
+          aria-pressed={following}
+        >
+          <Navigation className={`h-5 w-5 ${following ? 'animate-pulse' : ''}`} />
+        </button>
+      </div>
 
       {addDraft && (
         <AddDestinationDialog
