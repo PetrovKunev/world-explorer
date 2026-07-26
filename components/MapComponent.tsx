@@ -126,6 +126,16 @@ interface UserPosition {
   accuracy: number
 }
 
+// Разстояние по права линия (Leaflet използва хаверсинова формула)
+function distanceToDestination(from: UserPosition, dest: Destination): number {
+  return L.latLng(from.lat, from.lng).distanceTo([dest.latitude, dest.longitude])
+}
+
+function formatDistance(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)} м`
+  return `${(meters / 1000).toLocaleString('bg-BG', { maximumFractionDigits: 1 })} км`
+}
+
 interface AddDraft {
   lat: number
   lng: number
@@ -722,6 +732,14 @@ export default function MapComponent({
                       <MapPin className="h-3 w-3" />
                       <span>{typeInfo.label}</span>
                     </div>
+                    {userPosition && (
+                      <div className="flex items-center space-x-1">
+                        <Navigation className="h-3 w-3" />
+                        <span>
+                          {formatDistance(distanceToDestination(userPosition, destination))} от вас
+                        </span>
+                      </div>
+                    )}
                     {destination.visited && (
                       <div className="flex items-center space-x-1 text-green-600">
                         <span>✓ Посетена</span>
@@ -784,6 +802,17 @@ export default function MapComponent({
           <Navigation className={`h-5 w-5 ${following ? 'animate-pulse' : ''}`} />
         </button>
       </div>
+
+      {/* Разстояние до избраната дестинация — вижда се и при избор от списъка */}
+      {userPosition && selectedDestination && (
+        <div className="absolute bottom-20 left-4 z-[1000] flex max-w-[60%] items-center space-x-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 shadow-lg sm:bottom-4 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+          <Navigation className="h-3.5 w-3.5 shrink-0 text-primary-600" />
+          <span className="truncate">
+            <span className="font-medium">{selectedDestination.name}</span> —{' '}
+            {formatDistance(distanceToDestination(userPosition, selectedDestination))} от вас
+          </span>
+        </div>
+      )}
 
       {addDraft && (
         <AddDestinationDialog
