@@ -469,6 +469,7 @@ export default function MapComponent({
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null)
   const [locating, setLocating] = useState(false)
   const [following, setFollowing] = useState(false)
+  const [resolvingName, setResolvingName] = useState(false)
   const watchIdRef = useRef<number | null>(null)
   // При ръчно местене на картата спираме автоматичното центриране,
   // но следенето (маркерът) продължава да се обновява
@@ -602,10 +603,34 @@ export default function MapComponent({
     }
   }, [])
 
-  const markUserLocation = () => {
+  // Опит за автоматично име на мястото чрез обратно геокодиране (Nominatim).
+  // При неуспех връща празно име — потребителят го въвежда ръчно
+  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 4000)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=bg&zoom=18&lat=${lat}&lon=${lng}`,
+        { signal: controller.signal }
+      )
+      if (!res.ok) return ''
+      const data = (await res.json()) as { name?: string; display_name?: string }
+      return data.name || data.display_name?.split(',')[0] || ''
+    } catch {
+      return ''
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  const markUserLocation = async () => {
     if (!userPosition) return
+    const { lat, lng } = userPosition
+    setResolvingName(true)
+    const name = await reverseGeocode(lat, lng)
+    setResolvingName(false)
     map?.closePopup()
-    setAddDraft({ lat: userPosition.lat, lng: userPosition.lng, name: '' })
+    setAddDraft({ lat, lng, name })
   }
 
   return (
@@ -644,10 +669,15 @@ export default function MapComponent({
                   </p>
                   <button
                     onClick={markUserLocation}
-                    className="inline-flex items-center space-x-1 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-700"
+                    disabled={resolvingName}
+                    className="inline-flex items-center space-x-1 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-700 disabled:cursor-wait disabled:opacity-70"
                   >
-                    <Plus className="h-3 w-3" />
-                    <span>Отбележи това място</span>
+                    {resolvingName ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Plus className="h-3 w-3" />
+                    )}
+                    <span>{resolvingName ? 'Търсене на име…' : 'Отбележи това място'}</span>
                   </button>
                 </div>
               </Popup>
