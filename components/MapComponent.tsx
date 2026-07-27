@@ -13,7 +13,8 @@ import {
   DestinationType,
   DESTINATION_TYPES,
   DESTINATION_TYPE_KEYS,
-  formatVisitPeriod,
+  formatVisit,
+  latestVisit,
 } from '@/types/destination'
 import { useToast } from '@/components/Toaster'
 
@@ -339,8 +340,7 @@ function AddDestinationDialog({
       type,
       visited,
       rating: null,
-      visit_date: null,
-      visit_end_date: null,
+      visits: [],
       notes: null,
       photos: [],
       tags: [],
@@ -701,6 +701,7 @@ export default function MapComponent({
         <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} maxClusterRadius={60}>
         {destinations.map((destination) => {
           const typeInfo = DESTINATION_TYPES[destination.type] ?? DESTINATION_TYPES.other
+          const lastVisit = latestVisit(destination.visits)
           return (
             <Marker
               key={destination.id}
@@ -745,10 +746,12 @@ export default function MapComponent({
                     {destination.visited && (
                       <div className="flex items-center space-x-1 text-green-600">
                         <span>✓ Посетена</span>
-                        {destination.visit_date && (
+                        {lastVisit && (
                           <span>
-                            {destination.visit_end_date ? '' : 'на '}
-                            {formatVisitPeriod(destination.visit_date, destination.visit_end_date)}
+                            {lastVisit.end ? '' : 'на '}
+                            {formatVisit(lastVisit)}
+                            {destination.visits.length > 1 &&
+                              ` (+${destination.visits.length - 1})`}
                           </span>
                         )}
                       </div>

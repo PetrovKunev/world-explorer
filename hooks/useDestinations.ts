@@ -10,7 +10,7 @@ import { Destination, DestinationInput } from '@/types/destination'
 // изпускат от JSON сериализацията и Supabase никога не би изчистил полето
 function normalize(input: Partial<DestinationInput>) {
   const data: Record<string, unknown> = { ...input }
-  if ('visit_date' in data) data.visit_date = data.visit_date || null
+  if ('visits' in data) data.visits = data.visits ?? []
   if ('notes' in data) {
     const notes = typeof data.notes === 'string' ? data.notes.trim() : null
     data.notes = notes || null

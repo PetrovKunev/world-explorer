@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { MapPin, Calendar, Star, Pencil, Trash2 } from 'lucide-react'
-import { Destination, DESTINATION_TYPES, formatVisitPeriod } from '@/types/destination'
+import { Destination, DESTINATION_TYPES, formatVisit, latestVisit } from '@/types/destination'
 
 interface DestinationCardProps {
   destination: Destination
@@ -20,6 +20,7 @@ export default function DestinationCard({
   onDelete,
 }: DestinationCardProps) {
   const typeInfo = DESTINATION_TYPES[destination.type] ?? DESTINATION_TYPES.other
+  const lastVisit = latestVisit(destination.visits)
 
   return (
     <div
@@ -47,10 +48,13 @@ export default function DestinationCard({
               </span>
             </div>
 
-            {destination.visit_date && (
+            {lastVisit && (
               <div className="flex items-center space-x-1">
                 <Calendar className="h-3 w-3" />
-                <span>{formatVisitPeriod(destination.visit_date, destination.visit_end_date)}</span>
+                <span>
+                  {formatVisit(lastVisit)}
+                  {destination.visits.length > 1 && ` (+${destination.visits.length - 1})`}
+                </span>
               </div>
             )}
           </div>

@@ -27,9 +27,8 @@ interface FormState {
   longitude: string
   type: DestinationType
   visited: boolean
-  visit_date: string
-  visit_end_date: string
-  isPeriod: boolean
+  // Датите са низове от date-инпутите; празен end = еднодневно посещение
+  visits: { start: string; end: string }[]
   notes: string
   rating: number | null
   tags: string[]
@@ -55,9 +54,10 @@ export default function DestinationForm({
     longitude: initialData ? String(initialData.longitude) : '',
     type: initialData?.type ?? 'other',
     visited: initialData?.visited ?? false,
-    visit_date: initialData?.visit_date ?? '',
-    visit_end_date: initialData?.visit_end_date ?? '',
-    isPeriod: Boolean(initialData?.visit_end_date),
+    visits: (initialData?.visits ?? []).map((visit) => ({
+      start: visit.start,
+      end: visit.end ?? '',
+    })),
     notes: initialData?.notes ?? '',
     rating: initialData?.rating ?? null,
     tags: initialData?.tags ?? [],
@@ -135,12 +135,18 @@ export default function DestinationForm({
       return
     }
 
-    const visitDate = form.visited && form.visit_date ? form.visit_date : null
-    const visitEndDate =
-      visitDate && form.isPeriod && form.visit_end_date ? form.visit_end_date : null
-    if (visitDate && visitEndDate && visitEndDate < visitDate) {
-      showToast('error', 'Крайната дата не може да е преди началната')
-      return
+    // Редове без начална дата се пропускат; при „не е посетена“ датите се изчистват
+    const visits: { start: string; end: string | null }[] = []
+    if (form.visited) {
+      for (const visit of form.visits) {
+        if (!visit.start) continue
+        if (visit.end && visit.end < visit.start) {
+          showToast('error', 'Крайната дата не може да е преди началната')
+          return
+        }
+        visits.push({ start: visit.start, end: visit.end || null })
+      }
+      visits.sort((a, b) => a.start.localeCompare(b.start))
     }
 
     // Премахнати снимки (спрямо началното състояние) се изтриват от Storage
@@ -155,9 +161,7 @@ export default function DestinationForm({
       longitude,
       type: form.type,
       visited: form.visited,
-      // Ако дестинацията не е посетена, датите се изчистват
-      visit_date: visitDate,
-      visit_end_date: visitEndDate,
+      visits,
       notes: form.notes.trim() || null,
       rating: form.rating,
       tags: form.tags,
@@ -271,50 +275,84 @@ export default function DestinationForm({
         {form.visited && (
           <div>
             <div className="mb-1 flex items-center justify-between">
-              <label className={labelClass.replace('mb-1 ', '')}>
-                {form.isPeriod ? 'Период на посещение' : 'Дата на посещение'}
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Посещения
               </label>
-              <label className="flex items-center text-xs text-gray-600 dark:text-gray-400">
-                <input
-                  type="checkbox"
-                  checked={form.isPeriod}
-                  onChange={(e) => setForm((prev) => ({ ...prev, isPeriod: e.target.checked }))}
-                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700"
-                />
-                <span className="ml-1.5">Период</span>
-              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    visits: [...prev.visits, { start: '', end: '' }],
+                  }))
+                }
+                className="text-xs font-medium text-primary-600 transition-colors hover:text-primary-700"
+              >
+                + Добави посещение
+              </button>
             </div>
-            {form.isPeriod ? (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <div>
-                  <span className="mb-0.5 block text-xs text-gray-500 dark:text-gray-400">От</span>
-                  <input
-                    type="date"
-                    value={form.visit_date}
-                    onChange={(e) => setForm((prev) => ({ ...prev, visit_date: e.target.value }))}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <span className="mb-0.5 block text-xs text-gray-500 dark:text-gray-400">До</span>
-                  <input
-                    type="date"
-                    value={form.visit_end_date}
-                    min={form.visit_date || undefined}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, visit_end_date: e.target.value }))
-                    }
-                    className={inputClass}
-                  />
-                </div>
-              </div>
+
+            {form.visits.length === 0 ? (
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Няма добавени дати — добавете посещение по желание
+              </p>
             ) : (
-              <input
-                type="date"
-                value={form.visit_date}
-                onChange={(e) => setForm((prev) => ({ ...prev, visit_date: e.target.value }))}
-                className={inputClass}
-              />
+              <div className="space-y-2">
+                {form.visits.map((visit, index) => (
+                  <div key={index} className="flex items-end space-x-2">
+                    <div className="flex-1">
+                      <span className="mb-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                        От
+                      </span>
+                      <input
+                        type="date"
+                        value={visit.start}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            visits: prev.visits.map((v, i) =>
+                              i === index ? { ...v, start: e.target.value } : v
+                            ),
+                          }))
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <span className="mb-0.5 block text-xs text-gray-500 dark:text-gray-400">
+                        До (при период)
+                      </span>
+                      <input
+                        type="date"
+                        value={visit.end}
+                        min={visit.start || undefined}
+                        onChange={(e) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            visits: prev.visits.map((v, i) =>
+                              i === index ? { ...v, end: e.target.value } : v
+                            ),
+                          }))
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          visits: prev.visits.filter((_, i) => i !== index),
+                        }))
+                      }
+                      className="mb-1 rounded p-1.5 text-gray-400 transition-colors hover:text-red-600"
+                      aria-label="Премахни посещението"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
