@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { MapPin, Calendar, Star, Pencil, Trash2 } from 'lucide-react'
-import { Destination, DESTINATION_TYPES } from '@/types/destination'
+import { Destination, DESTINATION_TYPES, formatVisitPeriod } from '@/types/destination'
 
 interface DestinationCardProps {
   destination: Destination
@@ -50,7 +50,7 @@ export default function DestinationCard({
             {destination.visit_date && (
               <div className="flex items-center space-x-1">
                 <Calendar className="h-3 w-3" />
-                <span>{new Date(destination.visit_date).toLocaleDateString('bg-BG')}</span>
+                <span>{formatVisitPeriod(destination.visit_date, destination.visit_end_date)}</span>
               </div>
             )}
           </div>

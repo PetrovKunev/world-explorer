@@ -16,6 +16,8 @@ export interface Destination {
   type: DestinationType
   visited: boolean
   visit_date: string | null
+  // Крайна дата при посещение за период; null при единична дата
+  visit_end_date: string | null
   notes: string | null
   rating: number | null
   photos: string[]
@@ -72,3 +74,14 @@ export const DESTINATION_TYPES: Record<
 }
 
 export const DESTINATION_TYPE_KEYS = Object.keys(DESTINATION_TYPES) as DestinationType[]
+
+// „12.05.2026 г.“ при единична дата, „12.05.2026 г. – 15.05.2026 г.“ при период
+export function formatVisitPeriod(
+  visitDate: string | null,
+  visitEndDate: string | null
+): string | null {
+  if (!visitDate) return null
+  const start = new Date(visitDate).toLocaleDateString('bg-BG')
+  if (!visitEndDate || visitEndDate === visitDate) return start
+  return `${start} – ${new Date(visitEndDate).toLocaleDateString('bg-BG')}`
+}

@@ -13,6 +13,7 @@ import {
   DestinationType,
   DESTINATION_TYPES,
   DESTINATION_TYPE_KEYS,
+  formatVisitPeriod,
 } from '@/types/destination'
 import { useToast } from '@/components/Toaster'
 
@@ -339,6 +340,7 @@ function AddDestinationDialog({
       visited,
       rating: null,
       visit_date: null,
+      visit_end_date: null,
       notes: null,
       photos: [],
       tags: [],
@@ -745,7 +747,8 @@ export default function MapComponent({
                         <span>✓ Посетена</span>
                         {destination.visit_date && (
                           <span>
-                            на {new Date(destination.visit_date).toLocaleDateString('bg-BG')}
+                            {destination.visit_end_date ? '' : 'на '}
+                            {formatVisitPeriod(destination.visit_date, destination.visit_end_date)}
                           </span>
                         )}
                       </div>

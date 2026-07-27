@@ -28,6 +28,8 @@ interface FormState {
   type: DestinationType
   visited: boolean
   visit_date: string
+  visit_end_date: string
+  isPeriod: boolean
   notes: string
   rating: number | null
   tags: string[]
@@ -54,6 +56,8 @@ export default function DestinationForm({
     type: initialData?.type ?? 'other',
     visited: initialData?.visited ?? false,
     visit_date: initialData?.visit_date ?? '',
+    visit_end_date: initialData?.visit_end_date ?? '',
+    isPeriod: Boolean(initialData?.visit_end_date),
     notes: initialData?.notes ?? '',
     rating: initialData?.rating ?? null,
     tags: initialData?.tags ?? [],
@@ -131,6 +135,14 @@ export default function DestinationForm({
       return
     }
 
+    const visitDate = form.visited && form.visit_date ? form.visit_date : null
+    const visitEndDate =
+      visitDate && form.isPeriod && form.visit_end_date ? form.visit_end_date : null
+    if (visitDate && visitEndDate && visitEndDate < visitDate) {
+      showToast('error', 'Крайната дата не може да е преди началната')
+      return
+    }
+
     // Премахнати снимки (спрямо началното състояние) се изтриват от Storage
     const removed = (initialData?.photos ?? [])
       .concat(uploadedThisSessionRef.current)
@@ -143,8 +155,9 @@ export default function DestinationForm({
       longitude,
       type: form.type,
       visited: form.visited,
-      // Ако дестинацията не е посетена, датата се изчиства
-      visit_date: form.visited && form.visit_date ? form.visit_date : null,
+      // Ако дестинацията не е посетена, датите се изчистват
+      visit_date: visitDate,
+      visit_end_date: visitEndDate,
       notes: form.notes.trim() || null,
       rating: form.rating,
       tags: form.tags,
@@ -257,13 +270,52 @@ export default function DestinationForm({
 
         {form.visited && (
           <div>
-            <label className={labelClass}>Дата на посещение</label>
-            <input
-              type="date"
-              value={form.visit_date}
-              onChange={(e) => setForm((prev) => ({ ...prev, visit_date: e.target.value }))}
-              className={inputClass}
-            />
+            <div className="mb-1 flex items-center justify-between">
+              <label className={labelClass.replace('mb-1 ', '')}>
+                {form.isPeriod ? 'Период на посещение' : 'Дата на посещение'}
+              </label>
+              <label className="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                <input
+                  type="checkbox"
+                  checked={form.isPeriod}
+                  onChange={(e) => setForm((prev) => ({ ...prev, isPeriod: e.target.checked }))}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700"
+                />
+                <span className="ml-1.5">Период</span>
+              </label>
+            </div>
+            {form.isPeriod ? (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div>
+                  <span className="mb-0.5 block text-xs text-gray-500 dark:text-gray-400">От</span>
+                  <input
+                    type="date"
+                    value={form.visit_date}
+                    onChange={(e) => setForm((prev) => ({ ...prev, visit_date: e.target.value }))}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <span className="mb-0.5 block text-xs text-gray-500 dark:text-gray-400">До</span>
+                  <input
+                    type="date"
+                    value={form.visit_end_date}
+                    min={form.visit_date || undefined}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, visit_end_date: e.target.value }))
+                    }
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+            ) : (
+              <input
+                type="date"
+                value={form.visit_date}
+                onChange={(e) => setForm((prev) => ({ ...prev, visit_date: e.target.value }))}
+                className={inputClass}
+              />
+            )}
           </div>
         )}
 
