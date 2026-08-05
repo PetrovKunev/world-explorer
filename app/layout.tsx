@@ -10,11 +10,23 @@ export const metadata: Metadata = {
   title: 'World Explorer — интерактивна карта на пътуванията',
   description:
     'Интерактивна карта за проследяване на вашите дестинации в Европа и по света.',
+  applicationName: 'World Explorer',
+  // iOS няма пълна поддръжка на манифеста — тези мета тагове дават
+  // standalone режим и име при „Добави на начален екран“
+  appleWebApp: {
+    capable: true,
+    title: 'World Explorer',
+    statusBarStyle: 'default',
+  },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#1f2937' },
+  ],
 }
 
 export default function RootLayout({

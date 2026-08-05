@@ -1,7 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Menu, Globe, LogOut, User, Sun, Moon } from 'lucide-react'
+import { Menu, LogOut, User, Sun, Moon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface HeaderProps {
@@ -37,7 +38,14 @@ export default function Header({ onToggleSidebar, userEmail }: HeaderProps) {
         </button>
 
         <div className="flex items-center space-x-2">
-          <Globe className="h-5 w-5 text-primary-600 sm:h-6 sm:w-6 dark:text-primary-400" />
+          <Image
+            src="/logo.png"
+            alt="Лого на World Explorer"
+            width={28}
+            height={28}
+            priority
+            className="h-6 w-6 sm:h-7 sm:w-7"
+          />
           <h1 className="text-lg font-bold text-gray-900 sm:text-xl dark:text-gray-100">
             World Explorer
           </h1>

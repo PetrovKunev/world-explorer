@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Globe } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function Auth() {
@@ -47,7 +47,14 @@ export default function Auth() {
     <div className="flex min-h-full items-center justify-center bg-gray-50 px-4 dark:bg-gray-900">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg dark:bg-gray-800">
         <div className="mb-6 flex flex-col items-center space-y-2">
-          <Globe className="h-10 w-10 text-primary-600" />
+          <Image
+            src="/logo.png"
+            alt="Лого на World Explorer"
+            width={80}
+            height={80}
+            priority
+            className="h-20 w-20"
+          />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">World Explorer</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {isSignUp ? 'Създайте акаунт, за да запазвате дестинации' : 'Влезте, за да видите картата си'}
