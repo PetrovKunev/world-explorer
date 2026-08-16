@@ -57,3 +57,12 @@ export function continentFor(countryCode: string | null | undefined): Continent 
   if (!countryCode) return null
   return codeToContinent.get(countryCode.toUpperCase()) ?? null
 }
+
+// Емоджи флаг от ISO кода (двойка regional indicator символи).
+// На Windows се показва като букви — приемлив резервен вариант.
+export function flagEmoji(countryCode: string | null | undefined): string {
+  if (!countryCode || !/^[A-Za-z]{2}$/.test(countryCode)) return ''
+  return String.fromCodePoint(
+    ...[...countryCode.toUpperCase()].map((char) => 0x1f1e6 + char.charCodeAt(0) - 65)
+  )
+}

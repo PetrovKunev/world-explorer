@@ -1,12 +1,14 @@
 'use client'
 
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { Menu, LogOut, User, Sun, Moon } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { Menu, LogOut, User, Sun, Moon, Map, LayoutDashboard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface HeaderProps {
-  onToggleSidebar: () => void
+  // Без callback бутонът за списъка не се показва (напр. на таблото)
+  onToggleSidebar?: () => void
   userEmail: string
 }
 
@@ -17,8 +19,16 @@ function toggleTheme() {
   localStorage.setItem('theme', isDark ? 'dark' : 'light')
 }
 
+const navLinkClass = (active: boolean) =>
+  `hidden items-center space-x-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors lg:flex ${
+    active
+      ? 'bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+  }`
+
 export default function Header({ onToggleSidebar, userEmail }: HeaderProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
 
   const handleSignOut = async () => {
@@ -29,13 +39,15 @@ export default function Header({ onToggleSidebar, userEmail }: HeaderProps) {
   return (
     <header className="flex items-center justify-between border-b border-gray-200 bg-white px-3 py-3 shadow-sm sm:px-4 dark:border-gray-700 dark:bg-gray-800">
       <div className="flex items-center space-x-2 sm:space-x-3">
-        <button
-          onClick={onToggleSidebar}
-          className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-          aria-label="Покажи или скрий списъка с дестинации"
-        >
-          <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-        </button>
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label="Покажи или скрий списъка с дестинации"
+          >
+            <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+          </button>
+        )}
 
         <div className="flex items-center space-x-2">
           <Image
@@ -50,6 +62,18 @@ export default function Header({ onToggleSidebar, userEmail }: HeaderProps) {
             World Explorer
           </h1>
         </div>
+
+        {/* На мобилни превключването е в долната навигация */}
+        <nav className="flex items-center space-x-1 lg:ml-4" aria-label="Изгледи">
+          <Link href="/" className={navLinkClass(pathname === '/')}>
+            <Map className="h-4 w-4" />
+            <span>Карта</span>
+          </Link>
+          <Link href="/dashboard" className={navLinkClass(pathname === '/dashboard')}>
+            <LayoutDashboard className="h-4 w-4" />
+            <span>Табло</span>
+          </Link>
+        </nav>
       </div>
 
       <div className="flex items-center space-x-2 sm:space-x-4">
