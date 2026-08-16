@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toaster'
 import { PHOTOS_BUCKET, photoStoragePath } from '@/lib/photos'
+import { locationFields, reverseGeocode } from '@/lib/geo/geocode'
 import { Destination, DestinationInput } from '@/types/destination'
 
 // Празните стойности се нормализират до null — undefined ключовете се
@@ -26,11 +27,18 @@ export function useDestinations(userId: string, initialDestinations: Destination
 
   const addDestination = useCallback(
     async (input: DestinationInput): Promise<Destination | null> => {
+      // Географските данни се попълват автоматично, ако не са подадени
+      const location =
+        input.country_code == null
+          ? locationFields(await reverseGeocode(input.latitude, input.longitude))
+          : {}
+
       const { data, error } = await supabase
         .from('destinations')
         .insert([
           {
             ...normalize(input),
+            ...location,
             user_id: userId,
             photos: input.photos ?? [],
             tags: input.tags ?? [],
@@ -61,9 +69,23 @@ export function useDestinations(userId: string, initialDestinations: Destination
         return prev.map((dest) => (dest.id === id ? { ...dest, ...patch } : dest))
       })
 
+      // При нови координати (или липсващи гео данни) опресняваме държавата
+      // и града — оптимистичното състояние вече е приложено, така че
+      // геокодирането не бави интерфейса
+      let location = {}
+      const current = snapshot.find((dest) => dest.id === id)
+      if (current && ('latitude' in updates || 'longitude' in updates)) {
+        const latitude = updates.latitude ?? current.latitude
+        const longitude = updates.longitude ?? current.longitude
+        const moved = latitude !== current.latitude || longitude !== current.longitude
+        if (moved || current.country_code == null) {
+          location = locationFields(await reverseGeocode(latitude, longitude))
+        }
+      }
+
       const { data, error } = await supabase
         .from('destinations')
-        .update({ ...normalize(updates), updated_at: new Date().toISOString() })
+        .update({ ...normalize(updates), ...location, updated_at: new Date().toISOString() })
         .eq('id', id)
         .eq('user_id', userId)
         .select()

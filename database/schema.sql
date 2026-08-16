@@ -12,6 +12,10 @@ CREATE TABLE destinations (
   rating INTEGER CHECK (rating >= 1 AND rating <= 5),
   photos JSONB DEFAULT '[]',
   tags JSONB DEFAULT '[]',
+  country TEXT,
+  country_code CHAR(2),
+  city TEXT,
+  continent TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -21,6 +25,7 @@ CREATE INDEX idx_destinations_user_id ON destinations(user_id);
 CREATE INDEX idx_destinations_type ON destinations(type);
 CREATE INDEX idx_destinations_visited ON destinations(visited);
 CREATE INDEX idx_destinations_created_at ON destinations(created_at);
+CREATE INDEX idx_destinations_country_code ON destinations(country_code);
 
 -- Row Level Security (RLS) - всеки потребител вижда само своите данни
 ALTER TABLE destinations ENABLE ROW LEVEL SECURITY;

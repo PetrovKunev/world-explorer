@@ -155,14 +155,21 @@ Nominatim вече се прави в `MapComponent.tsx`, но връщания�
 
 ## 6. Фази на изпълнение
 
-### Фаза 1 — основа (задължителна първа)
+### Фаза 1 — основа (задължителна първа) ✅
 
-- [ ] Миграция: колони `country`, `country_code`, `city`, `continent`.
-- [ ] Статична таблица държава → континент.
-- [ ] Записване на географските данни при създаване и при местене на маркер.
-- [ ] Backfill скрипт за съществуващите записи.
+- [x] Миграция: колони `country`, `country_code`, `city`, `continent`
+      (`database/migrations/001_add_location_columns.sql`).
+- [x] Статична таблица държава → континент (`lib/geo/continents.ts`).
+- [x] Записване на географските данни при създаване и при местене на маркер
+      (`lib/geo/geocode.ts` + `hooks/useDestinations.ts`).
+- [x] Backfill скрипт за съществуващите записи (`scripts/backfill-location.ts`).
 
-Без тази фаза всичко останало е половинчато.
+**Стъпки за прилагане (ръчни):**
+
+1. Изпълнете `database/migrations/001_add_location_columns.sql` в Supabase
+   SQL Editor.
+2. Уверете се, че `SUPABASE_SERVICE_ROLE_KEY` (или `SUPABASE_SECRET_KEY`) е
+   в `.env.local`, и стартирайте `npm run backfill:location`.
 
 ### Фаза 2 — стойност
 

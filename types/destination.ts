@@ -1,3 +1,5 @@
+import { Continent } from '@/lib/geo/continents'
+
 export type DestinationType =
   | 'city'
   | 'landmark'
@@ -26,15 +28,22 @@ export interface Destination {
   rating: number | null
   photos: string[]
   tags: string[]
+  // Попълват се автоматично чрез обратно геокодиране (lib/geo)
+  country: string | null
+  country_code: string | null
+  city: string | null
+  continent: Continent | null
   created_at: string
   updated_at: string
 }
 
-// Данни при създаване/редакция — без полетата, които базата генерира
+// Данни при създаване/редакция — без полетата, които базата генерира.
+// Географските полета са по избор: липсват ли, попълват се автоматично.
 export type DestinationInput = Omit<
   Destination,
-  'id' | 'user_id' | 'created_at' | 'updated_at'
->
+  'id' | 'user_id' | 'created_at' | 'updated_at' | 'country' | 'country_code' | 'city' | 'continent'
+> &
+  Partial<Pick<Destination, 'country' | 'country_code' | 'city' | 'continent'>>
 
 export const DESTINATION_TYPES: Record<
   DestinationType,

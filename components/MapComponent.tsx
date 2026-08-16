@@ -17,6 +17,7 @@ import {
   latestVisit,
 } from '@/types/destination'
 import { useToast } from '@/components/Toaster'
+import { locationFields, ResolvedLocation, reverseGeocode } from '@/lib/geo/geocode'
 
 // Иконите се кешират по тип и статус — иначе всеки render създава
 // нови L.DivIcon обекти и Leaflet пресъздава маркерите
@@ -142,6 +143,9 @@ interface AddDraft {
   lat: number
   lng: number
   name: string
+  // Гео данни от вече направено обратно геокодиране (GPS потока) —
+  // спестяват повторна заявка при записа
+  location?: ResolvedLocation
 }
 
 interface MapComponentProps {
@@ -344,6 +348,7 @@ function AddDestinationDialog({
       notes: null,
       photos: [],
       tags: [],
+      ...locationFields(draft.location),
     })
   }
 
@@ -616,33 +621,15 @@ export default function MapComponent({
   }, [])
 
   // Опит за автоматично име на мястото чрез обратно геокодиране (Nominatim).
-  // При неуспех връща празно име — потребителят го въвежда ръчно
-  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 4000)
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=bg&zoom=18&lat=${lat}&lon=${lng}`,
-        { signal: controller.signal }
-      )
-      if (!res.ok) return ''
-      const data = (await res.json()) as { name?: string; display_name?: string }
-      return data.name || data.display_name?.split(',')[0] || ''
-    } catch {
-      return ''
-    } finally {
-      clearTimeout(timer)
-    }
-  }
-
+  // При неуспех оставяме празно име — потребителят го въвежда ръчно
   const markUserLocation = async () => {
     if (!userPosition) return
     const { lat, lng } = userPosition
     setResolvingName(true)
-    const name = await reverseGeocode(lat, lng)
+    const location = await reverseGeocode(lat, lng)
     setResolvingName(false)
     map?.closePopup()
-    setAddDraft({ lat, lng, name })
+    setAddDraft({ lat, lng, name: location?.name ?? '', location: location ?? undefined })
   }
 
   return (
