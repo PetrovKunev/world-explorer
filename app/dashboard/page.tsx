@@ -24,6 +24,8 @@ import {
   tripsByYear,
   typeDistribution,
 } from '@/lib/stats'
+import { badges } from '@/lib/badges'
+import BadgeGrid from '@/components/dashboard/BadgeGrid'
 import { CONTINENTS, flagEmoji } from '@/lib/geo/continents'
 import { Destination, DESTINATION_TYPES } from '@/types/destination'
 
@@ -79,6 +81,8 @@ export default async function DashboardPage() {
   const activeYear = mostActiveYear(destinations)
   const extremes = extremePoints(destinations)
   const favorites = topRatedPlaces(destinations)
+  const allBadges = badges(destinations)
+  const earnedCount = allBadges.filter((badge) => badge.earned).length
   const hasRatings = ratings.some((count) => count > 0)
   const hasMonths = months.some((count) => count > 0)
 
@@ -290,6 +294,13 @@ export default async function DashboardPage() {
               )}
             </ChartCard>
           </div>
+
+          <ChartCard
+            title={`Постижения (${earnedCount}/${allBadges.length})`}
+            description="Значките се отключват автоматично с напредъка на колекцията."
+          >
+            <BadgeGrid badges={allBadges} />
+          </ChartCard>
 
           <ChartCard
             title="Справка: пътувания"
