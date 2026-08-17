@@ -26,6 +26,7 @@ import {
 } from '@/lib/stats'
 import { badges } from '@/lib/badges'
 import BadgeGrid from '@/components/dashboard/BadgeGrid'
+import DataTransfer from '@/components/dashboard/DataTransfer'
 import { CONTINENTS, flagEmoji } from '@/lib/geo/continents'
 import { Destination, DESTINATION_TYPES } from '@/types/destination'
 
@@ -322,6 +323,13 @@ export default async function DashboardPage() {
             ) : (
               <EmptyChart message="Няма дестинации с данни за държава." />
             )}
+          </ChartCard>
+
+          <ChartCard
+            title="Експорт и импорт"
+            description="Изтеглете колекцията си в отворен формат или възстановете от JSON експорт."
+          >
+            <DataTransfer userId={user.id} destinations={destinations} />
           </ChartCard>
         </div>
       </main>
