@@ -4,10 +4,11 @@ import {
   overviewStats,
   ratingDistribution,
   topCountries,
+  trips,
+  tripsByMonth,
+  tripsByYear,
   typeDistribution,
   visitDays,
-  visitsByMonth,
-  visitsByYear,
 } from './stats'
 
 let nextId = 0
@@ -53,6 +54,45 @@ describe('visitDays', () => {
   })
 })
 
+describe('trips', () => {
+  it('обединява застъпващи се и последователни дати в едно пътуване', () => {
+    const result = trips([
+      makeDestination({ visited: true, visits: [{ start: '2026-07-23', end: '2026-07-25' }] }),
+      makeDestination({ visited: true, visits: [{ start: '2026-07-24', end: '2026-07-27' }] }),
+      // Допираща се дата (26-и следва 25-и) също е част от същото пътуване
+      makeDestination({ visited: true, visits: [{ start: '2026-07-28', end: null }] }),
+    ])
+    expect(result).toEqual([
+      { start: '2026-07-23', end: '2026-07-28', days: 6, placeCount: 3 },
+    ])
+  })
+
+  it('разделя посещения с поне един празен ден между тях', () => {
+    const result = trips([
+      makeDestination({
+        visited: true,
+        visits: [
+          { start: '2025-08-09', end: '2025-08-14' },
+          { start: '2026-07-23', end: '2026-07-29' },
+        ],
+      }),
+    ])
+    expect(result).toEqual([
+      { start: '2025-08-09', end: '2025-08-14', days: 6, placeCount: 1 },
+      { start: '2026-07-23', end: '2026-07-29', days: 7, placeCount: 1 },
+    ])
+  })
+
+  it('пропуска непосетените дестинации и невалидните дати', () => {
+    expect(
+      trips([
+        makeDestination({ visited: false, visits: [{ start: '2026-01-01', end: null }] }),
+        makeDestination({ visited: true, visits: [{ start: 'невалидна', end: null }] }),
+      ])
+    ).toEqual([])
+  })
+})
+
 describe('overviewStats', () => {
   it('връща нули при празна колекция', () => {
     const stats = overviewStats([])
@@ -93,8 +133,9 @@ describe('overviewStats', () => {
     expect(stats.countryCount).toBe(2)
     expect(stats.continentCount).toBe(2)
     expect(stats.worldPercent).toBe(1)
-    expect(stats.totalVisits).toBe(3)
-    expect(stats.totalTravelDays).toBe(4 + 1 + 1)
+    // Три посещения на различни дати = три отделни пътувания
+    expect(stats.tripCount).toBe(3)
+    expect(stats.travelDays).toBe(4 + 1 + 1)
     expect(stats.averageRating).toBe(4.5)
     expect(stats.photoCount).toBe(2)
     expect(stats.tagCount).toBe(2)
@@ -107,9 +148,9 @@ describe('overviewStats', () => {
   })
 })
 
-describe('visitsByYear', () => {
+describe('tripsByYear', () => {
   it('попълва празните години между първата и последната', () => {
-    const result = visitsByYear([
+    const result = tripsByYear([
       makeDestination({
         visited: true,
         visits: [
@@ -127,16 +168,24 @@ describe('visitsByYear', () => {
     ])
   })
 
+  it('брои обиколка с много места като едно пътуване в годината', () => {
+    const result = tripsByYear([
+      makeDestination({ visited: true, visits: [{ start: '2026-07-23', end: '2026-07-25' }] }),
+      makeDestination({ visited: true, visits: [{ start: '2026-07-25', end: '2026-07-29' }] }),
+    ])
+    expect(result).toEqual([{ year: 2026, count: 1 }])
+  })
+
   it('пропуска непосетените дестинации', () => {
     expect(
-      visitsByYear([makeDestination({ visited: false, visits: [{ start: '2026-01-01', end: null }] })])
+      tripsByYear([makeDestination({ visited: false, visits: [{ start: '2026-01-01', end: null }] })])
     ).toEqual([])
   })
 })
 
-describe('visitsByMonth', () => {
+describe('tripsByMonth', () => {
   it('агрегира по календарен месец за всички години', () => {
-    const result = visitsByMonth([
+    const result = tripsByMonth([
       makeDestination({
         visited: true,
         visits: [

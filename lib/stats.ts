@@ -15,11 +15,20 @@ export interface OverviewStats {
   countryCount: number
   continentCount: number
   worldPercent: number
-  totalVisits: number
-  totalTravelDays: number
+  tripCount: number
+  travelDays: number
   averageRating: number | null
   photoCount: number
   tagCount: number
+}
+
+// Едно пътуване: отбелязани посещения със застъпващи се или последователни
+// дати, обединени в общ период — независимо колко места обхващат
+export interface Trip {
+  start: string
+  end: string
+  days: number
+  placeCount: number
 }
 
 // Продължителност на посещение в дни (включително); единична дата = 1 ден
@@ -39,6 +48,43 @@ function allVisits(destinations: Destination[]): Visit[] {
   return visitedOnly(destinations).flatMap((dest) => dest.visits ?? [])
 }
 
+const DAY_MS = 86_400_000
+
+const toDateString = (ms: number) => new Date(ms).toISOString().slice(0, 10)
+
+// Извежда пътуванията: посещенията се сортират по начална дата и се
+// обединяват, когато периодите им се застъпват или допират (разлика ≤ 1 ден).
+// Така екскурзия с 20 отбелязани места е едно пътуване, а дните на път
+// не се броят двойно.
+export function trips(destinations: Destination[]): Trip[] {
+  const ranges = allVisits(destinations)
+    .map((visit) => ({
+      start: Date.parse(visit.start),
+      end: Date.parse(visit.end || visit.start),
+    }))
+    .filter((range) => !Number.isNaN(range.start) && !Number.isNaN(range.end))
+    .map((range) => (range.end < range.start ? { start: range.start, end: range.start } : range))
+    .sort((a, b) => a.start - b.start)
+
+  const merged: { start: number; end: number; placeCount: number }[] = []
+  for (const range of ranges) {
+    const last = merged[merged.length - 1]
+    if (last && range.start <= last.end + DAY_MS) {
+      last.end = Math.max(last.end, range.end)
+      last.placeCount++
+    } else {
+      merged.push({ ...range, placeCount: 1 })
+    }
+  }
+
+  return merged.map((trip) => ({
+    start: toDateString(trip.start),
+    end: toDateString(trip.end),
+    days: Math.round((trip.end - trip.start) / DAY_MS) + 1,
+    placeCount: trip.placeCount,
+  }))
+}
+
 export function overviewStats(destinations: Destination[]): OverviewStats {
   const visited = visitedOnly(destinations)
   const countries = new Set<string>()
@@ -48,7 +94,7 @@ export function overviewStats(destinations: Destination[]): OverviewStats {
     if (dest.continent) continents.add(dest.continent)
   }
 
-  const visits = allVisits(destinations)
+  const allTrips = trips(destinations)
   const rated = destinations.filter((dest) => dest.rating != null)
   const ratingSum = rated.reduce((sum, dest) => sum + (dest.rating ?? 0), 0)
   const tags = new Set(destinations.flatMap((dest) => dest.tags ?? []))
@@ -60,20 +106,20 @@ export function overviewStats(destinations: Destination[]): OverviewStats {
     countryCount: countries.size,
     continentCount: continents.size,
     worldPercent: Math.round((countries.size / WORLD_COUNTRY_COUNT) * 100),
-    totalVisits: visits.length,
-    totalTravelDays: visits.reduce((sum, visit) => sum + visitDays(visit), 0),
+    tripCount: allTrips.length,
+    travelDays: allTrips.reduce((sum, trip) => sum + trip.days, 0),
     averageRating: rated.length > 0 ? Math.round((ratingSum / rated.length) * 10) / 10 : null,
     photoCount: destinations.reduce((sum, dest) => sum + (dest.photos?.length ?? 0), 0),
     tagCount: tags.size,
   }
 }
 
-// Посещения по година (по началната дата), с попълнени празни години
-// между първата и последната — честна времева ос без дупки
-export function visitsByYear(destinations: Destination[]): { year: number; count: number }[] {
+// Пътувания по година (по началната дата на пътуването), с попълнени
+// празни години между първата и последната — честна времева ос без дупки
+export function tripsByYear(destinations: Destination[]): { year: number; count: number }[] {
   const counts = new Map<number, number>()
-  for (const visit of allVisits(destinations)) {
-    const year = Number(visit.start?.slice(0, 4))
+  for (const trip of trips(destinations)) {
+    const year = Number(trip.start.slice(0, 4))
     if (!Number.isInteger(year)) continue
     counts.set(year, (counts.get(year) ?? 0) + 1)
   }
@@ -87,11 +133,11 @@ export function visitsByYear(destinations: Destination[]): { year: number; count
   return result
 }
 
-// Посещения по календарен месец (1–12), сумарно за всички години
-export function visitsByMonth(destinations: Destination[]): number[] {
+// Пътувания по календарен месец (1–12) на началната дата, за всички години
+export function tripsByMonth(destinations: Destination[]): number[] {
   const counts = new Array(12).fill(0)
-  for (const visit of allVisits(destinations)) {
-    const month = Number(visit.start?.slice(5, 7))
+  for (const trip of trips(destinations)) {
+    const month = Number(trip.start.slice(5, 7))
     if (month >= 1 && month <= 12) counts[month - 1]++
   }
   return counts

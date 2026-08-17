@@ -10,8 +10,8 @@ import {
   overviewStats,
   ratingDistribution,
   topCountries,
+  tripsByYear,
   typeDistribution,
-  visitsByYear,
 } from '@/lib/stats'
 import { flagEmoji } from '@/lib/geo/continents'
 import { Destination, DESTINATION_TYPES } from '@/types/destination'
@@ -40,7 +40,7 @@ export default async function DashboardPage() {
 
   const destinations: Destination[] = data ?? []
   const stats = overviewStats(destinations)
-  const years = visitsByYear(destinations)
+  const years = tripsByYear(destinations)
   const types = typeDistribution(destinations)
   const countries = topCountries(destinations)
   const ratings = ratingDistribution(destinations)
@@ -80,9 +80,10 @@ export default async function DashboardPage() {
             />
             <StatTile label="Континенти" value={String(stats.continentCount)} hint="от общо 7" />
             <StatTile
-              label="Посещения"
-              value={String(stats.totalVisits)}
-              hint={`${stats.totalTravelDays} дни на път`}
+              label="Пътувания"
+              value={String(stats.tripCount)}
+              hint={`${stats.travelDays} дни на път`}
+              title="Отбелязани посещения със застъпващи се или последователни дати се броят като едно пътуване, независимо колко места обхващат. Дните на път са без двойно броене."
             />
             <StatTile
               label="Средна оценка"
@@ -96,13 +97,16 @@ export default async function DashboardPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <ChartCard title="Посещения по година">
+            <ChartCard
+              title="Пътувания по година"
+              description="Посещения на близки дати се броят като едно пътуване, колкото и места да включва."
+            >
               {years.length > 0 ? (
                 <ColumnChart
                   items={years.map(({ year, count }) => ({
                     label: String(year),
                     value: count,
-                    title: `${year} г.: ${count} посещения`,
+                    title: `${year} г.: ${count} ${count === 1 ? 'пътуване' : 'пътувания'}`,
                   }))}
                 />
               ) : (
