@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import Auth from '@/components/Auth'
 import Header from '@/components/Header'
@@ -143,13 +144,31 @@ export default async function DashboardPage() {
               description="Посещения на близки дати се броят като едно пътуване, колкото и места да включва."
             >
               {years.length > 0 ? (
-                <ColumnChart
-                  items={years.map(({ year, count }) => ({
-                    label: String(year),
-                    value: count,
-                    title: `${year} г.: ${count} ${count === 1 ? 'пътуване' : 'пътувания'}`,
-                  }))}
-                />
+                <>
+                  <ColumnChart
+                    items={years.map(({ year, count }) => ({
+                      label: String(year),
+                      value: count,
+                      title: `${year} г.: ${count} ${count === 1 ? 'пътуване' : 'пътувания'}`,
+                    }))}
+                  />
+                  <p className="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-700/60 dark:text-gray-400">
+                    Годината в равносметка:{' '}
+                    {years
+                      .filter((entry) => entry.count > 0)
+                      .map((entry, index) => (
+                        <span key={entry.year}>
+                          {index > 0 && ' · '}
+                          <Link
+                            href={`/dashboard/${entry.year}`}
+                            className="text-primary-600 hover:underline dark:text-primary-400"
+                          >
+                            {entry.year}
+                          </Link>
+                        </span>
+                      ))}
+                  </p>
+                </>
               ) : (
                 <EmptyChart message="Добавете дати на посещенията, за да видите графиката." />
               )}

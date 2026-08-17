@@ -15,6 +15,7 @@ import {
   tripsByYear,
   typeDistribution,
   visitDays,
+  yearInReview,
 } from './stats'
 
 let nextId = 0
@@ -365,5 +366,63 @@ describe('рекорди', () => {
   it('класира любимите места по оценка, само посетени', () => {
     const favorites = topRatedPlaces(collection)
     expect(favorites.map((dest) => dest.name)).toEqual(['Лимасол', 'Копенхаген'])
+  })
+})
+
+describe('yearInReview', () => {
+  const collection = [
+    makeDestination({
+      name: 'Рим',
+      visited: true,
+      country: 'Италия',
+      country_code: 'IT',
+      visits: [{ start: '2025-08-09', end: '2025-08-14' }],
+    }),
+    makeDestination({
+      name: 'Флоренция',
+      visited: true,
+      country: 'Италия',
+      country_code: 'IT',
+      visits: [{ start: '2026-07-23', end: '2026-07-26' }],
+    }),
+    makeDestination({
+      name: 'Загреб',
+      visited: true,
+      country: 'Хърватия',
+      country_code: 'HR',
+      visits: [{ start: '2026-07-27', end: '2026-07-29' }],
+    }),
+    makeDestination({
+      name: 'Атина',
+      visited: true,
+      country: 'Гърция',
+      country_code: 'GR',
+      visits: [{ start: '2026-03-01', end: null }],
+    }),
+  ]
+
+  it('смята показателите само за годината', () => {
+    const review = yearInReview(collection, 2026)
+    // Две пътувания: март (единичен ден) и юли (обединен период 23–29)
+    expect(review.tripCount).toBe(2)
+    expect(review.travelDays).toBe(1 + 7)
+    expect(review.placeCount).toBe(3)
+    expect(review.countryCodes.sort()).toEqual(['GR', 'HR', 'IT'])
+    expect(review.longestTrip?.days).toBe(7)
+    expect(review.topCountry?.country_code).toBe('IT')
+  })
+
+  it('разпознава новите държави спрямо цялата история', () => {
+    const review = yearInReview(collection, 2026)
+    // Италия е посетена още през 2025, затова не е нова
+    expect(review.newCountryCodes.sort()).toEqual(['GR', 'HR'])
+  })
+
+  it('връща нули за година без пътувания', () => {
+    const review = yearInReview(collection, 2020)
+    expect(review.tripCount).toBe(0)
+    expect(review.placeCount).toBe(0)
+    expect(review.longestTrip).toBeNull()
+    expect(review.topCountry).toBeNull()
   })
 })

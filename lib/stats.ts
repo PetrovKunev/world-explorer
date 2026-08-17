@@ -316,3 +316,67 @@ export function topRatedPlaces(destinations: Destination[], limit = 5): Destinat
     .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || a.name.localeCompare(b.name, 'bg'))
     .slice(0, limit)
 }
+
+// „Годината в равносметка“ — показателите за една година.
+// Пътуванията се отнасят към годината на началната си дата.
+export interface YearReview {
+  year: number
+  tripCount: number
+  travelDays: number
+  placeCount: number
+  countryCodes: string[]
+  newCountryCodes: string[]
+  longestTrip: Trip | null
+  topCountry: { country: string; country_code: string; count: number } | null
+}
+
+export function yearInReview(destinations: Destination[], year: number): YearReview {
+  const yearTrips = trips(destinations).filter((trip) => Number(trip.start.slice(0, 4)) === year)
+
+  // Места с поне едно посещение, започнало през годината
+  const inYear = visitedOnly(destinations).filter((dest) =>
+    (dest.visits ?? []).some((visit) => Number(visit.start?.slice(0, 4)) === year)
+  )
+
+  const countryCounts = new Map<string, { country: string; count: number }>()
+  for (const dest of inYear) {
+    if (!dest.country_code) continue
+    const entry = countryCounts.get(dest.country_code)
+    if (entry) {
+      entry.count++
+    } else {
+      countryCounts.set(dest.country_code, { country: dest.country ?? dest.country_code, count: 1 })
+    }
+  }
+
+  // Първата година с посещение за всяка държава — за „нови държави“
+  const firstYearByCountry = new Map<string, number>()
+  for (const dest of visitedOnly(destinations)) {
+    if (!dest.country_code) continue
+    for (const visit of dest.visits ?? []) {
+      const visitYear = Number(visit.start?.slice(0, 4))
+      if (!Number.isInteger(visitYear)) continue
+      const known = firstYearByCountry.get(dest.country_code)
+      if (known == null || visitYear < known) firstYearByCountry.set(dest.country_code, visitYear)
+    }
+  }
+
+  const countryCodes = [...countryCounts.keys()]
+  const topEntry = [...countryCounts.entries()].sort((a, b) => b[1].count - a[1].count)[0]
+
+  return {
+    year,
+    tripCount: yearTrips.length,
+    travelDays: yearTrips.reduce((sum, trip) => sum + trip.days, 0),
+    placeCount: inYear.length,
+    countryCodes,
+    newCountryCodes: countryCodes.filter((code) => firstYearByCountry.get(code) === year),
+    longestTrip: yearTrips.reduce<Trip | null>(
+      (longest, trip) => (longest && longest.days >= trip.days ? longest : trip),
+      null
+    ),
+    topCountry: topEntry
+      ? { country: topEntry[1].country, country_code: topEntry[0], count: topEntry[1].count }
+      : null,
+  }
+}
