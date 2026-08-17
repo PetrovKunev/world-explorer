@@ -48,10 +48,18 @@ const COUNTRY_CODES: Record<Continent, string> = {
 
 const codeToContinent = new Map<string, Continent>()
 for (const [continent, codes] of Object.entries(COUNTRY_CODES) as [Continent, string][]) {
-  for (const code of codes.split(' ')) {
+  for (const code of codes.split(' ').filter(Boolean)) {
     codeToContinent.set(code, continent)
   }
 }
+
+// Общ брой държави и територии по континент — за progress индикаторите
+export const CONTINENT_COUNTRY_COUNTS = Object.fromEntries(
+  (Object.entries(COUNTRY_CODES) as [Continent, string][]).map(([continent, codes]) => [
+    continent,
+    codes.split(' ').filter(Boolean).length,
+  ])
+) as Record<Continent, number>
 
 export function continentFor(countryCode: string | null | undefined): Continent | null {
   if (!countryCode) return null

@@ -3,7 +3,7 @@
 // показатели отчитат само посетените дестинации.
 
 import { Destination, DestinationType, Visit } from '../types/destination'
-import { Continent } from './geo/continents'
+import { Continent, CONTINENT_COUNTRY_COUNTS, CONTINENTS } from './geo/continents'
 
 // Държави членки на ООН — базата за „% от света“
 export const WORLD_COUNTRY_COUNT = 193
@@ -29,6 +29,7 @@ export interface Trip {
   end: string
   days: number
   placeCount: number
+  countryCodes: string[]
 }
 
 // Продължителност на посещение в дни (включително); единична дата = 1 ден
@@ -44,10 +45,6 @@ function visitedOnly(destinations: Destination[]): Destination[] {
   return destinations.filter((dest) => dest.visited)
 }
 
-function allVisits(destinations: Destination[]): Visit[] {
-  return visitedOnly(destinations).flatMap((dest) => dest.visits ?? [])
-}
-
 const DAY_MS = 86_400_000
 
 const toDateString = (ms: number) => new Date(ms).toISOString().slice(0, 10)
@@ -57,23 +54,38 @@ const toDateString = (ms: number) => new Date(ms).toISOString().slice(0, 10)
 // Така екскурзия с 20 отбелязани места е едно пътуване, а дните на път
 // не се броят двойно.
 export function trips(destinations: Destination[]): Trip[] {
-  const ranges = allVisits(destinations)
-    .map((visit) => ({
-      start: Date.parse(visit.start),
-      end: Date.parse(visit.end || visit.start),
-    }))
+  const ranges = visitedOnly(destinations)
+    .flatMap((dest) =>
+      (dest.visits ?? []).map((visit) => ({
+        start: Date.parse(visit.start),
+        end: Date.parse(visit.end || visit.start),
+        destId: dest.id,
+        countryCode: dest.country_code,
+      }))
+    )
     .filter((range) => !Number.isNaN(range.start) && !Number.isNaN(range.end))
-    .map((range) => (range.end < range.start ? { start: range.start, end: range.start } : range))
+    .map((range) => (range.end < range.start ? { ...range, end: range.start } : range))
     .sort((a, b) => a.start - b.start)
 
-  const merged: { start: number; end: number; placeCount: number }[] = []
+  const merged: {
+    start: number
+    end: number
+    destIds: Set<string>
+    countries: Set<string>
+  }[] = []
   for (const range of ranges) {
     const last = merged[merged.length - 1]
     if (last && range.start <= last.end + DAY_MS) {
       last.end = Math.max(last.end, range.end)
-      last.placeCount++
+      last.destIds.add(range.destId)
+      if (range.countryCode) last.countries.add(range.countryCode)
     } else {
-      merged.push({ ...range, placeCount: 1 })
+      merged.push({
+        start: range.start,
+        end: range.end,
+        destIds: new Set([range.destId]),
+        countries: new Set(range.countryCode ? [range.countryCode] : []),
+      })
     }
   }
 
@@ -81,7 +93,8 @@ export function trips(destinations: Destination[]): Trip[] {
     start: toDateString(trip.start),
     end: toDateString(trip.end),
     days: Math.round((trip.end - trip.start) / DAY_MS) + 1,
-    placeCount: trip.placeCount,
+    placeCount: trip.destIds.size,
+    countryCodes: [...trip.countries],
   }))
 }
 
@@ -186,4 +199,120 @@ export function ratingDistribution(destinations: Destination[]): number[] {
     }
   }
   return counts
+}
+
+// Справка по държави за цялата колекция (вкл. планираните места)
+export interface CountryRow {
+  country: string
+  country_code: string
+  places: number
+  visitedCount: number
+  plannedCount: number
+  averageRating: number | null
+}
+
+export function countrySummary(destinations: Destination[]): CountryRow[] {
+  const rows = new Map<
+    string,
+    { country: string; places: number; visitedCount: number; ratingSum: number; ratedCount: number }
+  >()
+  for (const dest of destinations) {
+    if (!dest.country_code) continue
+    let row = rows.get(dest.country_code)
+    if (!row) {
+      row = { country: dest.country ?? dest.country_code, places: 0, visitedCount: 0, ratingSum: 0, ratedCount: 0 }
+      rows.set(dest.country_code, row)
+    }
+    row.places++
+    if (dest.visited) row.visitedCount++
+    if (dest.rating != null) {
+      row.ratingSum += dest.rating
+      row.ratedCount++
+    }
+  }
+  return [...rows.entries()]
+    .map(([country_code, row]) => ({
+      country: row.country,
+      country_code,
+      places: row.places,
+      visitedCount: row.visitedCount,
+      plannedCount: row.places - row.visitedCount,
+      averageRating:
+        row.ratedCount > 0 ? Math.round((row.ratingSum / row.ratedCount) * 10) / 10 : null,
+    }))
+    .sort(
+      (a, b) =>
+        b.visitedCount - a.visitedCount ||
+        b.places - a.places ||
+        a.country.localeCompare(b.country, 'bg')
+    )
+}
+
+// Напредък по континенти: посетени държави спрямо всички в континента.
+// Антарктида се показва само ако има посещение там.
+export function continentProgress(
+  destinations: Destination[]
+): { continent: Continent; visitedCountries: number; totalCountries: number }[] {
+  const byContinent = new Map<Continent, Set<string>>()
+  for (const dest of visitedOnly(destinations)) {
+    if (!dest.continent || !dest.country_code) continue
+    const set = byContinent.get(dest.continent) ?? new Set<string>()
+    set.add(dest.country_code)
+    byContinent.set(dest.continent, set)
+  }
+  return (Object.keys(CONTINENTS) as Continent[])
+    .map((continent) => ({
+      continent,
+      visitedCountries: byContinent.get(continent)?.size ?? 0,
+      totalCountries: CONTINENT_COUNTRY_COUNTS[continent],
+    }))
+    .filter((entry) => entry.continent !== 'antarctica' || entry.visitedCountries > 0)
+    .sort((a, b) => b.visitedCountries - a.visitedCountries)
+}
+
+// Рекорди
+
+export function longestTrip(destinations: Destination[]): Trip | null {
+  return trips(destinations).reduce<Trip | null>(
+    (longest, trip) => (longest && longest.days >= trip.days ? longest : trip),
+    null
+  )
+}
+
+// Годината с най-много пътувания; при равенство печели по-новата
+export function mostActiveYear(
+  destinations: Destination[]
+): { year: number; count: number } | null {
+  let best: { year: number; count: number } | null = null
+  for (const entry of tripsByYear(destinations)) {
+    if (entry.count > 0 && (!best || entry.count >= best.count)) best = entry
+  }
+  return best
+}
+
+// Крайни точки на картата сред посетените места
+export function extremePoints(destinations: Destination[]): {
+  north: Destination
+  south: Destination
+  east: Destination
+  west: Destination
+} | null {
+  const visited = visitedOnly(destinations)
+  if (visited.length === 0) return null
+  const pick = (better: (a: Destination, b: Destination) => boolean) =>
+    visited.reduce((best, dest) => (better(dest, best) ? dest : best))
+  return {
+    north: pick((a, b) => a.latitude > b.latitude),
+    south: pick((a, b) => a.latitude < b.latitude),
+    east: pick((a, b) => a.longitude > b.longitude),
+    west: pick((a, b) => a.longitude < b.longitude),
+  }
+}
+
+// Топ най-високо оценени посетени места
+export function topRatedPlaces(destinations: Destination[], limit = 5): Destination[] {
+  return visitedOnly(destinations)
+    .filter((dest) => dest.rating != null)
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || a.name.localeCompare(b.name, 'bg'))
+    .slice(0, limit)
 }

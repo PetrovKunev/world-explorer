@@ -6,20 +6,47 @@ import StatTile from '@/components/dashboard/StatTile'
 import ChartCard from '@/components/dashboard/ChartCard'
 import ColumnChart from '@/components/dashboard/ColumnChart'
 import BarList from '@/components/dashboard/BarList'
+import ProgressList from '@/components/dashboard/ProgressList'
+import TripsTable, { formatTripPeriod } from '@/components/dashboard/TripsTable'
+import CountriesTable from '@/components/dashboard/CountriesTable'
 import {
+  continentProgress,
+  countrySummary,
+  extremePoints,
+  longestTrip,
+  mostActiveYear,
   overviewStats,
   ratingDistribution,
   topCountries,
+  topRatedPlaces,
+  trips,
+  tripsByMonth,
   tripsByYear,
   typeDistribution,
 } from '@/lib/stats'
-import { flagEmoji } from '@/lib/geo/continents'
+import { CONTINENTS, flagEmoji } from '@/lib/geo/continents'
 import { Destination, DESTINATION_TYPES } from '@/types/destination'
 
 export const metadata = { title: 'Табло — World Explorer' }
 
+const MONTH_LABELS = ['яну', 'фев', 'мар', 'апр', 'май', 'юни', 'юли', 'авг', 'сеп', 'окт', 'ное', 'дек']
+
 function EmptyChart({ message }: { message: string }) {
   return <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">{message}</p>
+}
+
+function RecordRow({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="shrink-0 text-sm text-gray-500 dark:text-gray-400">{label}</dt>
+      <dd className="text-right text-sm font-medium text-gray-900 dark:text-gray-100">
+        {value}
+        {hint && (
+          <span className="ml-1 font-normal text-gray-500 dark:text-gray-400">({hint})</span>
+        )}
+      </dd>
+    </div>
+  )
 }
 
 export default async function DashboardPage() {
@@ -41,10 +68,19 @@ export default async function DashboardPage() {
   const destinations: Destination[] = data ?? []
   const stats = overviewStats(destinations)
   const years = tripsByYear(destinations)
+  const months = tripsByMonth(destinations)
   const types = typeDistribution(destinations)
   const countries = topCountries(destinations)
   const ratings = ratingDistribution(destinations)
+  const continents = continentProgress(destinations)
+  const allTrips = trips(destinations)
+  const countryRows = countrySummary(destinations)
+  const longest = longestTrip(destinations)
+  const activeYear = mostActiveYear(destinations)
+  const extremes = extremePoints(destinations)
+  const favorites = topRatedPlaces(destinations)
   const hasRatings = ratings.some((count) => count > 0)
+  const hasMonths = months.some((count) => count > 0)
 
   return (
     <div className="flex h-full flex-col">
@@ -114,7 +150,24 @@ export default async function DashboardPage() {
               )}
             </ChartCard>
 
-            <ChartCard title="Топ държави">
+            <ChartCard
+              title="Пътувания по месеци"
+              description="В кой месец от годината тръгвате на път — сумарно за всички години."
+            >
+              {hasMonths ? (
+                <ColumnChart
+                  items={months.map((count, index) => ({
+                    label: MONTH_LABELS[index],
+                    value: count,
+                    title: `${MONTH_LABELS[index]}: ${count} ${count === 1 ? 'пътуване' : 'пътувания'}`,
+                  }))}
+                />
+              ) : (
+                <EmptyChart message="Добавете дати на посещенията, за да видите графиката." />
+              )}
+            </ChartCard>
+
+            <ChartCard title="Топ държави" description="Посетени места по държава.">
               {countries.length > 0 ? (
                 <BarList
                   items={countries.map((entry) => ({
@@ -129,7 +182,25 @@ export default async function DashboardPage() {
               )}
             </ChartCard>
 
-            <ChartCard title="По тип място">
+            <ChartCard
+              title="Континенти"
+              description="Посетени държави от всички държави и територии на континента."
+            >
+              {continents.length > 0 ? (
+                <ProgressList
+                  items={continents.map((entry) => ({
+                    key: entry.continent,
+                    label: CONTINENTS[entry.continent].label,
+                    value: entry.visitedCountries,
+                    total: entry.totalCountries,
+                  }))}
+                />
+              ) : (
+                <EmptyChart message="Няма посетени места с данни за континент." />
+              )}
+            </ChartCard>
+
+            <ChartCard title="По тип място" description="Всички дестинации, вкл. планираните.">
               {types.length > 0 ? (
                 <BarList
                   items={types.map(({ type, count }) => ({
@@ -158,6 +229,89 @@ export default async function DashboardPage() {
               )}
             </ChartCard>
           </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <ChartCard title="Рекорди">
+              {longest || activeYear || extremes ? (
+                <dl className="space-y-3">
+                  {longest && (
+                    <RecordRow
+                      label="Най-дълго пътуване"
+                      value={`${longest.days} дни`}
+                      hint={formatTripPeriod(longest)}
+                    />
+                  )}
+                  {activeYear && (
+                    <RecordRow
+                      label="Най-активна година"
+                      value={String(activeYear.year)}
+                      hint={`${activeYear.count} ${activeYear.count === 1 ? 'пътуване' : 'пътувания'}`}
+                    />
+                  )}
+                  {extremes && (
+                    <>
+                      <RecordRow label="Най на север" value={extremes.north.name} />
+                      <RecordRow label="Най на юг" value={extremes.south.name} />
+                      <RecordRow label="Най на изток" value={extremes.east.name} />
+                      <RecordRow label="Най на запад" value={extremes.west.name} />
+                    </>
+                  )}
+                </dl>
+              ) : (
+                <EmptyChart message="Рекордите се появяват с първите посетени места." />
+              )}
+            </ChartCard>
+
+            <ChartCard title="Топ 5 любими места" description="Най-високо оценените посетени места.">
+              {favorites.length > 0 ? (
+                <ol className="space-y-2.5">
+                  {favorites.map((dest, index) => (
+                    <li key={dest.id} className="flex items-center gap-3 text-sm">
+                      <span className="w-5 shrink-0 text-right tabular-nums text-gray-400 dark:text-gray-500">
+                        {index + 1}.
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-gray-900 dark:text-gray-100">
+                        <span className="mr-1.5">
+                          {DESTINATION_TYPES[dest.type]?.emoji ?? '📍'}
+                        </span>
+                        {dest.name}
+                        {dest.country_code && (
+                          <span className="ml-1.5">{flagEmoji(dest.country_code)}</span>
+                        )}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-gray-700 dark:text-gray-300">
+                        {dest.rating} ★
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <EmptyChart message="Поставете оценки на посетените места." />
+              )}
+            </ChartCard>
+          </div>
+
+          <ChartCard
+            title="Справка: пътувания"
+            description="Всяко пътуване с продължителност, брой места и държави."
+          >
+            {allTrips.length > 0 ? (
+              <TripsTable trips={allTrips} />
+            ) : (
+              <EmptyChart message="Добавете дати на посещенията, за да се появят пътуванията." />
+            )}
+          </ChartCard>
+
+          <ChartCard
+            title="Справка: по държави"
+            description="Всички дестинации по държави — вкл. планираните."
+          >
+            {countryRows.length > 0 ? (
+              <CountriesTable rows={countryRows} />
+            ) : (
+              <EmptyChart message="Няма дестинации с данни за държава." />
+            )}
+          </ChartCard>
         </div>
       </main>
 
