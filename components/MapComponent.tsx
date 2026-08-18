@@ -261,10 +261,8 @@ function GeocodingSearch({
     abortRef.current = controller
     setSearching(true)
 
-    fetch(
-      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=bg&q=${encodeURIComponent(q)}`,
-      { signal: controller.signal }
-    )
+    // През /api/geocode — правилен User-Agent към Nominatim + кеш
+    fetch(`/api/geocode?q=${encodeURIComponent(q)}`, { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : []))
       .then((data: GeocodeResult[]) => {
         setResults(data)

@@ -34,18 +34,18 @@ export async function reverseGeocode(
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), options?.timeoutMs ?? 4000)
 
-  // Nominatim изисква идентифициращ User-Agent; браузърът не позволява
-  // да се задава, затова го пращаме само от Node (backfill скрипта)
-  const headers: Record<string, string> =
-    typeof window === 'undefined'
-      ? { 'User-Agent': 'world-explorer (github.com/PetrovKunev/world-explorer)' }
-      : {}
+  // От браузъра минаваме през /api/geocode (правилен User-Agent + кеш на
+  // сървъра); директната заявка остава за Node (backfill скрипта)
+  const inBrowser = typeof window !== 'undefined'
+  const url = inBrowser
+    ? `/api/geocode?lat=${lat.toFixed(5)}&lng=${lng.toFixed(5)}`
+    : `https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=bg&zoom=18&lat=${lat}&lon=${lng}`
+  const headers: Record<string, string> = inBrowser
+    ? {}
+    : { 'User-Agent': 'world-explorer (github.com/PetrovKunev/world-explorer)' }
 
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=bg&zoom=18&lat=${lat}&lon=${lng}`,
-      { signal: controller.signal, headers }
-    )
+    const res = await fetch(url, { signal: controller.signal, headers })
     if (!res.ok) return null
     const data = (await res.json()) as NominatimReverseResponse
     const address = data.address ?? {}
