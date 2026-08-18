@@ -106,7 +106,7 @@ export default function DataTransfer({ userId, destinations }: DataTransferProps
       {pending && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm text-primary-800 dark:border-primary-800 dark:bg-primary-900/40 dark:text-primary-200">
           <span>
-            Ще бъдат добавени {pending.records.length} дестинации
+            Ще бъдат добавени {pending.records.length} дестинации без снимките
             {pending.skipped > 0 && ` (${pending.skipped} пропуснати като невалидни)`}. Продължаваме?
           </span>
           <button

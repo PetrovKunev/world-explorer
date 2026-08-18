@@ -166,7 +166,10 @@ export function parseImport(json: string): { records: DestinationInput[]; skippe
       notes: text(raw.notes),
       rating: Number.isInteger(rating) && rating >= 1 && rating <= 5 ? rating : null,
       tags: strings(raw.tags),
-      photos: strings(raw.photos),
+      // Снимките не се пренасят: пътищата сочат Storage файлове, които или
+      // липсват, или се споделят с оригинала — изтриването на единия запис
+      // би унищожило снимките на другия
+      photos: [],
       country: text(raw.country),
       country_code: text(raw.country_code),
       city: text(raw.city),

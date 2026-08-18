@@ -20,11 +20,20 @@ export function photoPath(value: string): string {
 }
 
 // Bucket-ът е частен — снимките се показват през подписани URL-и.
-// Кешът е за целия таб; подновяваме 5 минути преди изтичане
+// Кешът е за целия таб. Подновяваме 5 минути преди изтичане, но пазим
+// стария URL до реалния му край — така при преподписване няма мигане
 const SIGN_TTL_SECONDS = 3600
-const signedUrlCache = new Map<string, { url: string; expiresAt: number }>()
+const RENEW_MARGIN_SECONDS = 300
+const signedUrlCache = new Map<string, { url: string; renewAt: number; expiresAt: number }>()
 
+// null означава „трябва (пре)подписване“
 export function cachedSignedUrl(path: string): string | null {
+  const entry = signedUrlCache.get(path)
+  return entry && entry.renewAt > Date.now() ? entry.url : null
+}
+
+// Още валиден за показване URL, дори когато вече подлежи на подновяване
+export function displaySignedUrl(path: string): string | null {
   const entry = signedUrlCache.get(path)
   return entry && entry.expiresAt > Date.now() ? entry.url : null
 }
@@ -37,10 +46,14 @@ export async function signPhotoPaths(supabase: SupabaseClient, paths: string[]):
     .from(PHOTOS_BUCKET)
     .createSignedUrls(missing, SIGN_TTL_SECONDS)
 
-  const expiresAt = Date.now() + (SIGN_TTL_SECONDS - 300) * 1000
+  const now = Date.now()
   for (const item of data ?? []) {
     if (item.signedUrl && item.path) {
-      signedUrlCache.set(item.path, { url: item.signedUrl, expiresAt })
+      signedUrlCache.set(item.path, {
+        url: item.signedUrl,
+        renewAt: now + (SIGN_TTL_SECONDS - RENEW_MARGIN_SECONDS) * 1000,
+        expiresAt: now + SIGN_TTL_SECONDS * 1000,
+      })
     }
   }
 }

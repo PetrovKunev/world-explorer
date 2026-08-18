@@ -8,6 +8,10 @@ values ('photos', 'photos', false)
 on conflict (id) do update set public = false;
 
 -- 2. Политики: всеки файл стои в папка с id-то на потребителя (<user_id>/<файл>)
+-- Старата публична политика (от инсталации преди частния bucket) се маха —
+-- иначе снимките остават четими за всички въпреки private=false
+drop policy if exists "Public read access for photos" on storage.objects;
+
 drop policy if exists "Users can read own photos" on storage.objects;
 create policy "Users can read own photos"
 on storage.objects for select

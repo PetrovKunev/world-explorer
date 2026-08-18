@@ -98,6 +98,12 @@ describe('parseImport', () => {
     expect(records[0].country_code).toBe('IT')
   })
 
+  it('не пренася снимките — пътищата сочат споделени Storage файлове', () => {
+    const original = makeDestination({ photos: ['user-1/a.jpg', 'user-1/b.jpg'] })
+    const { records } = parseImport(toJSON([original]))
+    expect(records[0].photos).toEqual([])
+  })
+
   it('пропуска невалидните записи и нормализира стойностите', () => {
     const { records, skipped } = parseImport(
       JSON.stringify([
