@@ -11,7 +11,7 @@ import { useDestinations } from '@/hooks/useDestinations'
 import { Destination, DestinationInput } from '@/types/destination'
 
 // Leaflet работи само в браузъра — зареждаме картата без SSR
-const MapComponent = dynamic(() => import('@/components/MapComponent'), {
+const MapComponent = dynamic(() => import('@/components/map/MapComponent'), {
   ssr: false,
   loading: () => (
     <div className="flex h-full animate-pulse items-center justify-center bg-gray-200 dark:bg-gray-800">
