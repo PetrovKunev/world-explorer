@@ -19,84 +19,111 @@ import {
 import { useToast } from '@/components/Toaster'
 import { locationFields, ResolvedLocation, reverseGeocode } from '@/lib/geo/geocode'
 
-// Иконите се кешират по тип и статус — иначе всеки render създава
+// Пинчета като „забодени в коркова карта“: лъскава глава с отблясък,
+// метална игла и сянка при върха. Върхът на иглата е гео-точката.
+// Дублираните SVG дефиниции с еднакво id са безопасни — сочат едно и също.
+const PIN_COLORS = {
+  visited: { light: '#8df0c0', base: '#10b981', dark: '#047857' },
+  planned: { light: '#ffcf9e', base: '#f97316', dark: '#b45309' },
+  draft: { light: '#fca5a5', base: '#ef4444', dark: '#b91c1c' },
+} as const
+
+function pushpinSvg(colorKey: keyof typeof PIN_COLORS, tilt: number): string {
+  const color = PIN_COLORS[colorKey]
+  return `
+    <svg width="38" height="48" viewBox="0 0 38 48" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="wx-pin-${colorKey}" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="${color.light}"/>
+          <stop offset="55%" stop-color="${color.base}"/>
+          <stop offset="100%" stop-color="${color.dark}"/>
+        </radialGradient>
+        <linearGradient id="wx-pin-needle" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#e5e7eb"/>
+          <stop offset="50%" stop-color="#9ca3af"/>
+          <stop offset="100%" stop-color="#4b5563"/>
+        </linearGradient>
+      </defs>
+      <ellipse cx="19" cy="44" rx="5.5" ry="2" fill="rgba(40,20,0,0.3)"/>
+      <g transform="rotate(${tilt} 19 44)">
+        <polygon points="17.8,21 20.2,21 19,44" fill="url(#wx-pin-needle)"/>
+        <ellipse cx="19" cy="20.5" rx="3.5" ry="1.5" fill="#374151"/>
+        <circle cx="19" cy="12" r="9.5" fill="url(#wx-pin-${colorKey})"/>
+        <ellipse cx="15.5" cy="8" rx="3.2" ry="2.2" fill="rgba(255,255,255,0.55)"
+          transform="rotate(-25 15.5 8)"/>
+      </g>
+    </svg>
+  `
+}
+
+// Иконите се кешират по статус и наклон — иначе всеки render създава
 // нови L.DivIcon обекти и Leaflet пресъздава маркерите
 const iconCache = new Map<string, L.DivIcon>()
 
-function getMarkerIcon(type: DestinationType, visited: boolean): L.DivIcon {
-  const key = `${type}-${visited}`
+function getMarkerIcon(visited: boolean, tilt: number): L.DivIcon {
+  const colorKey = visited ? 'visited' : 'planned'
+  const key = `${colorKey}-${tilt}`
   const cached = iconCache.get(key)
   if (cached) return cached
 
-  const primaryColor = visited ? '#10B981' : '#F97316'
-  const emoji = DESTINATION_TYPES[type]?.emoji ?? DESTINATION_TYPES.other.emoji
-  const statusEmoji = visited ? '✅' : '🧳'
-
   const icon = L.divIcon({
-    html: `
-      <div style="
-        background-color: ${primaryColor};
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        position: relative;
-      ">
-        ${emoji}
-        <div style="
-          position: absolute;
-          bottom: -2px;
-          right: -2px;
-          background-color: white;
-          border-radius: 50%;
-          width: 12px;
-          height: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 8px;
-        ">
-          ${statusEmoji}
-        </div>
-      </div>
-    `,
+    html: pushpinSvg(colorKey, tilt),
     className: 'destination-marker',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
+    iconSize: [38, 48],
+    iconAnchor: [19, 44],
   })
 
   iconCache.set(key, icon)
   return icon
 }
 
+// Лек детерминиран наклон (−16°…16°) от id-то — като истински пинчета,
+// но стабилен между render-ите
+function pinTilt(id: string): number {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) | 0
+  }
+  return (Math.abs(hash) % 33) - 16
+}
+
 const tempMarkerIcon = L.divIcon({
-  html: `
-    <div style="
-      background-color: #EF4444;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: 2px solid white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 10px;
-      font-weight: bold;
-    ">
-      +
-    </div>
-  `,
+  html: pushpinSvg('draft', 0),
   className: 'temp-marker',
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
+  iconSize: [38, 48],
+  iconAnchor: [19, 44],
 })
+
+// Клъстер: „бележка с число, забодена с мини пинче“
+function clusterIcon(cluster: { getChildCount(): number }): L.DivIcon {
+  const count = cluster.getChildCount()
+  return L.divIcon({
+    html: `
+      <svg width="48" height="44" viewBox="0 0 48 44" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="wx-cluster-pin" cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#ffcf9e"/>
+            <stop offset="55%" stop-color="#f97316"/>
+            <stop offset="100%" stop-color="#b45309"/>
+          </radialGradient>
+        </defs>
+        <g transform="rotate(-4 24 26)">
+          <rect x="6" y="13" width="36" height="26" rx="4" fill="#fdf6e3"
+            stroke="rgba(120,90,50,0.45)"/>
+          <text x="24" y="31" text-anchor="middle"
+            font-family="system-ui, sans-serif" font-size="13" font-weight="700"
+            fill="#3d2d1a">${count}</text>
+        </g>
+        <ellipse cx="24" cy="15" rx="3" ry="1.2" fill="rgba(40,20,0,0.25)"/>
+        <circle cx="24" cy="10" r="5.5" fill="url(#wx-cluster-pin)"/>
+        <ellipse cx="22" cy="8" rx="1.8" ry="1.3" fill="rgba(255,255,255,0.55)"/>
+      </svg>
+    `,
+    className: 'cluster-note',
+    iconSize: [48, 44],
+    iconAnchor: [24, 26],
+  })
+}
 
 // Син пулсиращ маркер за текущото местоположение на потребителя
 const userLocationIcon = L.divIcon({
@@ -127,6 +154,22 @@ interface UserPosition {
   lat: number
   lng: number
   accuracy: number
+}
+
+// Следи класа .dark върху <html> (превключва се от бутона в хедъра),
+// за да сменяме стила на картата заедно с темата
+function useIsDarkTheme(): boolean {
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  )
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+  return isDark
 }
 
 // Разстояние по права линия (Leaflet използва хаверсинова формула)
@@ -632,12 +675,22 @@ export default function MapComponent({
     setAddDraft({ lat, lng, name: location?.name ?? '', location: location ?? undefined })
   }
 
+  const isDark = useIsDarkTheme()
+
   return (
     <div className="map-container">
       <MapContainer center={[48.8566, 2.3522]} zoom={5} className="leaflet-container" ref={setMap}>
+        {/* CARTO Voyager (светла) / Dark Matter (тъмна) — истински тъмен стил
+            вместо CSS инвертиране; key пресъздава слоя при смяна на темата */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          key={isDark ? 'dark' : 'light'}
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url={
+            isDark
+              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+              : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+          }
+          subdomains="abcd"
         />
 
         <MapController selectedDestination={selectedDestination} destinations={destinations} />
@@ -685,7 +738,12 @@ export default function MapComponent({
         )}
 
         {/* Близките маркери се групират в клъстери */}
-        <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} maxClusterRadius={60}>
+        <MarkerClusterGroup
+          chunkedLoading
+          showCoverageOnHover={false}
+          maxClusterRadius={60}
+          iconCreateFunction={clusterIcon}
+        >
         {destinations.map((destination) => {
           const typeInfo = DESTINATION_TYPES[destination.type] ?? DESTINATION_TYPES.other
           const lastVisit = latestVisit(destination.visits)
@@ -693,7 +751,8 @@ export default function MapComponent({
             <Marker
               key={destination.id}
               position={[destination.latitude, destination.longitude]}
-              icon={getMarkerIcon(destination.type, destination.visited)}
+              icon={getMarkerIcon(destination.visited, pinTilt(destination.id))}
+              title={`${destination.name} · ${typeInfo.label} · ${destination.visited ? 'посетена' : 'планирана'}`}
               draggable
               eventHandlers={{
                 click: () => onSelectDestination(destination),
