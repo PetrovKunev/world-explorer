@@ -156,22 +156,6 @@ interface UserPosition {
   accuracy: number
 }
 
-// Следи класа .dark върху <html> (превключва се от бутона в хедъра),
-// за да сменяме стила на картата заедно с темата
-function useIsDarkTheme(): boolean {
-  const [isDark, setIsDark] = useState(() =>
-    document.documentElement.classList.contains('dark')
-  )
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.classList.contains('dark'))
-    })
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
-    return () => observer.disconnect()
-  }, [])
-  return isDark
-}
-
 // Разстояние по права линия (Leaflet използва хаверсинова формула)
 function distanceToDestination(from: UserPosition, dest: Destination): number {
   return L.latLng(from.lat, from.lng).distanceTo([dest.latitude, dest.longitude])
@@ -675,21 +659,13 @@ export default function MapComponent({
     setAddDraft({ lat, lng, name: location?.name ?? '', location: location ?? undefined })
   }
 
-  const isDark = useIsDarkTheme()
-
   return (
     <div className="map-container">
       <MapContainer center={[48.8566, 2.3522]} zoom={5} className="leaflet-container" ref={setMap}>
-        {/* CARTO Voyager (светла) / Dark Matter (тъмна) — истински тъмен стил
-            вместо CSS инвертиране; key пресъздава слоя при смяна на темата */}
+        {/* CARTO Voyager и в двете теми — в тъмната само леко приглушена (CSS) */}
         <TileLayer
-          key={isDark ? 'dark' : 'light'}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url={
-            isDark
-              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-              : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-          }
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           subdomains="abcd"
         />
 
