@@ -5,7 +5,6 @@ import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-markercluster'
 import L from 'leaflet'
 import { MapPin, Plus, Info, X, LocateFixed, Loader2, Navigation } from 'lucide-react'
-import Image from 'next/image'
 import 'react-leaflet-markercluster/styles'
 import {
   Destination,
@@ -15,6 +14,7 @@ import {
   latestVisit,
 } from '@/types/destination'
 import { useToast } from '@/components/Toaster'
+import PhotoThumb from '@/components/PhotoThumb'
 import { reverseGeocode } from '@/lib/geo/geocode'
 import { clusterIcon, getMarkerIcon, pinTilt, tempMarkerIcon, userLocationIcon } from './icons'
 import { MapController, ClickCapture } from './MapController'
@@ -286,10 +286,9 @@ export default function MapComponent({
                 <div className="max-w-xs p-2">
                   {destination.photos.length > 0 && (
                     <div className="relative mb-2 h-24 w-52 overflow-hidden rounded">
-                      <Image
-                        src={destination.photos[0]}
+                      <PhotoThumb
+                        photo={destination.photos[0]}
                         alt={destination.name}
-                        fill
                         sizes="208px"
                         className="object-cover"
                       />

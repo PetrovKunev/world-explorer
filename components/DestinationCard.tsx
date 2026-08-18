@@ -1,7 +1,7 @@
 'use client'
 
-import Image from 'next/image'
 import { MapPin, Calendar, Star, Pencil, Trash2 } from 'lucide-react'
+import PhotoThumb from '@/components/PhotoThumb'
 import { Destination, DESTINATION_TYPES, formatVisit, latestVisit } from '@/types/destination'
 
 interface DestinationCardProps {
@@ -114,7 +114,7 @@ export default function DestinationCard({
             <div className="mt-2 flex gap-1.5">
               {destination.photos.slice(0, 3).map((url) => (
                 <div key={url} className="relative h-12 w-16 overflow-hidden rounded">
-                  <Image src={url} alt="" fill sizes="64px" className="object-cover" />
+                  <PhotoThumb photo={url} alt="" sizes="64px" className="object-cover" />
                 </div>
               ))}
               {destination.photos.length > 3 && (

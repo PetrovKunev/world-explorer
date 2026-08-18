@@ -194,10 +194,15 @@ Nominatim вече се прави в `MapComponent.tsx`, но връщания�
 - [x] Експорт/импорт на данни (`lib/export.ts`) — JSON, CSV, GeoJSON, GPX
       + импорт от JSON с валидация.
 
-### Фаза 4 — технически дълг (може паралелно)
+### Фаза 4 — технически дълг ✅
 
-- [ ] `/api/geocode` proxy с кеш.
-- [ ] Разделяне на `MapComponent.tsx`.
-- [ ] GitHub Actions (lint + build).
-- [ ] Частен bucket за снимки със signed URLs.
-- [ ] Подреждане на документацията и миграциите.
+- [x] `/api/geocode` proxy — правилен User-Agent, кеш 24 ч, само за
+      влезли потребители.
+- [x] Разделяне на `MapComponent.tsx` → `components/map/` (икони,
+      контролери, търсене, диалог, основен компонент).
+- [x] GitHub Actions (`.github/workflows/ci.yml`) — lint + test + build.
+- [x] Частен bucket за снимки със signed URLs (кеш за 1 час в
+      `lib/photos.ts`, компонент `PhotoThumb`). **Ръчна стъпка:**
+      изпълнете `database/migrations/002_private_photos.sql`.
+- [x] Документацията → `docs/` (+`docs/archive/`), SQL скриптовете →
+      `database/migrations/` + `database/archive/` с `database/README.md`.

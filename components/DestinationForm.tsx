@@ -1,11 +1,11 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
-import Image from 'next/image'
 import { X, Star, Tag, ImagePlus, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toaster'
-import { PHOTOS_BUCKET, MAX_PHOTOS, MAX_PHOTO_SIZE_MB, photoStoragePath } from '@/lib/photos'
+import { PHOTOS_BUCKET, MAX_PHOTOS, MAX_PHOTO_SIZE_MB, photoPath } from '@/lib/photos'
+import PhotoThumb from '@/components/PhotoThumb'
 import {
   Destination,
   DestinationInput,
@@ -63,17 +63,18 @@ export default function DestinationForm({
     tags: initialData?.tags ?? [],
   })
 
-  const [photos, setPhotos] = useState<string[]>(initialData?.photos ?? [])
+  // Нормализираме до пътища в bucket-а — старите записи пазят публични URL-и
+  const [photos, setPhotos] = useState<string[]>(
+    (initialData?.photos ?? []).map(photoPath)
+  )
   const [uploading, setUploading] = useState(false)
   const [newTag, setNewTag] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   // Качени в тази сесия на формата — трият се от Storage при отказ
   const uploadedThisSessionRef = useRef<string[]>([])
 
-  const removeFromStorage = (urls: string[]) => {
-    const paths = urls
-      .map(photoStoragePath)
-      .filter((path): path is string => path !== null)
+  const removeFromStorage = (photoValues: string[]) => {
+    const paths = photoValues.map(photoPath)
     if (paths.length > 0) {
       void supabase.storage.from(PHOTOS_BUCKET).remove(paths)
     }
@@ -112,9 +113,9 @@ export default function DestinationForm({
         continue
       }
 
-      const { data } = supabase.storage.from(PHOTOS_BUCKET).getPublicUrl(path)
-      uploadedThisSessionRef.current.push(data.publicUrl)
-      setPhotos((prev) => [...prev, data.publicUrl])
+      // Bucket-ът е частен — пазим пътя; показването е през подписан URL
+      uploadedThisSessionRef.current.push(path)
+      setPhotos((prev) => [...prev, path])
       count += 1
     }
 
@@ -151,8 +152,9 @@ export default function DestinationForm({
 
     // Премахнати снимки (спрямо началното състояние) се изтриват от Storage
     const removed = (initialData?.photos ?? [])
+      .map(photoPath)
       .concat(uploadedThisSessionRef.current)
-      .filter((url) => !photos.includes(url))
+      .filter((path) => !photos.includes(path))
     removeFromStorage(removed)
 
     onSubmit({
@@ -392,7 +394,7 @@ export default function DestinationForm({
           <div className="flex flex-wrap gap-2">
             {photos.map((url) => (
               <div key={url} className="group relative h-16 w-24 overflow-hidden rounded-lg">
-                <Image src={url} alt="" fill sizes="96px" className="object-cover" />
+                <PhotoThumb photo={url} alt="" sizes="96px" className="object-cover" />
                 <button
                   type="button"
                   onClick={() => removePhoto(url)}

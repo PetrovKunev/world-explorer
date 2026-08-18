@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/Toaster'
-import { PHOTOS_BUCKET, photoStoragePath } from '@/lib/photos'
+import { PHOTOS_BUCKET, photoPath } from '@/lib/photos'
 import { locationFields, reverseGeocode } from '@/lib/geo/geocode'
 import { Destination, DestinationInput } from '@/types/destination'
 
@@ -127,9 +127,7 @@ export function useDestinations(userId: string, initialDestinations: Destination
 
       // Изчистваме снимките на дестинацията от Storage (best effort)
       const removed = snapshot.find((dest) => dest.id === id)
-      const photoPaths = (removed?.photos ?? [])
-        .map(photoStoragePath)
-        .filter((path): path is string => path !== null)
+      const photoPaths = (removed?.photos ?? []).map(photoPath)
       if (photoPaths.length > 0) {
         void supabase.storage.from(PHOTOS_BUCKET).remove(photoPaths)
       }
