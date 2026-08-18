@@ -79,7 +79,7 @@ world-explorer/
 │   └── server.ts           # Сървърен Supabase клиент (cookies)
 ├── proxy.ts                # Опресняване на Supabase сесията при всяка заявка
 ├── types/destination.ts    # Типове и етикети на дестинациите
-└── database/               # SQL скриптове (schema.sql съдържа таблицата + RLS)
+└── database/               # SQL скриптове — вижте database/README.md
 ```
 
 ## 🔧 Скриптове

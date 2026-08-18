@@ -1,126 +1,25 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-markercluster'
 import L from 'leaflet'
-import { MapPin, Plus, Info, X, Calendar, Search, LocateFixed, Loader2, Navigation } from 'lucide-react'
-import Image from 'next/image'
+import { MapPin, Plus, Info, X, LocateFixed, Loader2, Navigation } from 'lucide-react'
 import 'react-leaflet-markercluster/styles'
 import {
   Destination,
   DestinationInput,
-  DestinationType,
   DESTINATION_TYPES,
-  DESTINATION_TYPE_KEYS,
   formatVisit,
   latestVisit,
 } from '@/types/destination'
 import { useToast } from '@/components/Toaster'
-
-// Иконите се кешират по тип и статус — иначе всеки render създава
-// нови L.DivIcon обекти и Leaflet пресъздава маркерите
-const iconCache = new Map<string, L.DivIcon>()
-
-function getMarkerIcon(type: DestinationType, visited: boolean): L.DivIcon {
-  const key = `${type}-${visited}`
-  const cached = iconCache.get(key)
-  if (cached) return cached
-
-  const primaryColor = visited ? '#10B981' : '#F97316'
-  const emoji = DESTINATION_TYPES[type]?.emoji ?? DESTINATION_TYPES.other.emoji
-  const statusEmoji = visited ? '✅' : '🧳'
-
-  const icon = L.divIcon({
-    html: `
-      <div style="
-        background-color: ${primaryColor};
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        position: relative;
-      ">
-        ${emoji}
-        <div style="
-          position: absolute;
-          bottom: -2px;
-          right: -2px;
-          background-color: white;
-          border-radius: 50%;
-          width: 12px;
-          height: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 8px;
-        ">
-          ${statusEmoji}
-        </div>
-      </div>
-    `,
-    className: 'destination-marker',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-  })
-
-  iconCache.set(key, icon)
-  return icon
-}
-
-const tempMarkerIcon = L.divIcon({
-  html: `
-    <div style="
-      background-color: #EF4444;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: 2px solid white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 10px;
-      font-weight: bold;
-    ">
-      +
-    </div>
-  `,
-  className: 'temp-marker',
-  iconSize: [20, 20],
-  iconAnchor: [10, 10],
-})
-
-// Син пулсиращ маркер за текущото местоположение на потребителя
-const userLocationIcon = L.divIcon({
-  html: `
-    <div style="position: relative; width: 18px; height: 18px;">
-      <div class="user-location-pulse" style="
-        position: absolute;
-        inset: -8px;
-        border-radius: 50%;
-        background-color: rgba(59, 130, 246, 0.3);
-      "></div>
-      <div style="
-        position: absolute;
-        inset: 0;
-        background-color: #3B82F6;
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      "></div>
-    </div>
-  `,
-  className: 'user-location-marker',
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-})
+import PhotoThumb from '@/components/PhotoThumb'
+import { reverseGeocode } from '@/lib/geo/geocode'
+import { clusterIcon, getMarkerIcon, pinTilt, tempMarkerIcon, userLocationIcon } from './icons'
+import { MapController, ClickCapture } from './MapController'
+import GeocodingSearch from './GeocodingSearch'
+import AddDestinationDialog, { AddDraft } from './AddDestinationDialog'
 
 interface UserPosition {
   lat: number
@@ -138,335 +37,12 @@ function formatDistance(meters: number): string {
   return `${(meters / 1000).toLocaleString('bg-BG', { maximumFractionDigits: 1 })} км`
 }
 
-interface AddDraft {
-  lat: number
-  lng: number
-  name: string
-}
-
 interface MapComponentProps {
   destinations: Destination[]
   selectedDestination: Destination | null
   onSelectDestination: (destination: Destination | null) => void
   onAddDestination: (destination: DestinationInput) => void
   onMoveDestination: (id: string, latitude: number, longitude: number) => void
-}
-
-// Първоначално вмества всички дестинации; след това центрира при избор
-function MapController({
-  selectedDestination,
-  destinations,
-}: {
-  selectedDestination: Destination | null
-  destinations: Destination[]
-}) {
-  const map = useMap()
-  const didFitRef = useRef(false)
-
-  useEffect(() => {
-    if (didFitRef.current) return
-    didFitRef.current = true
-    if (destinations.length > 0) {
-      const bounds = L.latLngBounds(
-        destinations.map((dest) => [dest.latitude, dest.longitude] as [number, number])
-      )
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10 })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    if (selectedDestination) {
-      map.setView([selectedDestination.latitude, selectedDestination.longitude], 13, {
-        animate: true,
-      })
-    }
-  }, [selectedDestination, map])
-
-  return null
-}
-
-// Улавя кликовете върху картата
-function ClickCapture({
-  disabled,
-  onMapClick,
-}: {
-  disabled: boolean
-  onMapClick: (lat: number, lng: number) => void
-}) {
-  useMapEvents({
-    click: (e) => {
-      if (!disabled) {
-        onMapClick(e.latlng.lat, e.latlng.lng)
-      }
-    },
-  })
-  return null
-}
-
-interface GeocodeResult {
-  display_name: string
-  name?: string
-  lat: string
-  lon: string
-}
-
-// Търсене на място по име чрез OpenStreetMap Nominatim
-function GeocodingSearch({
-  onSelect,
-}: {
-  onSelect: (result: { lat: number; lng: number; name: string }) => void
-}) {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<GeocodeResult[]>([])
-  const [open, setOpen] = useState(false)
-  const [searching, setSearching] = useState(false)
-  const abortRef = useRef<AbortController | null>(null)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const runSearch = (q: string) => {
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
-    setSearching(true)
-
-    fetch(
-      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=bg&q=${encodeURIComponent(q)}`,
-      { signal: controller.signal }
-    )
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data: GeocodeResult[]) => {
-        setResults(data)
-        setOpen(true)
-        setSearching(false)
-      })
-      .catch(() => {
-        // Прекъсната или неуспешна заявка — не показваме грешка при търсене
-        if (!controller.signal.aborted) setSearching(false)
-      })
-  }
-
-  const handleChange = (value: string) => {
-    setQuery(value)
-    if (timerRef.current) clearTimeout(timerRef.current)
-    if (value.trim().length < 3) {
-      setResults([])
-      setOpen(false)
-      return
-    }
-    timerRef.current = setTimeout(() => runSearch(value.trim()), 400)
-  }
-
-  const clear = () => {
-    setQuery('')
-    setResults([])
-    setOpen(false)
-  }
-
-  return (
-    <div className="absolute left-14 right-4 top-4 z-[1000] sm:right-auto sm:w-80">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => handleChange(e.target.value)}
-          placeholder="Търсене на място…"
-          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-9 text-sm shadow-lg focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
-        />
-        {query && (
-          <button
-            onClick={clear}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-600"
-            aria-label="Изчисти търсенето"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-      </div>
-
-      {open && (
-        <div className="mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
-          {results.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-              {searching ? 'Търсене…' : 'Няма намерени резултати'}
-            </div>
-          ) : (
-            results.map((result, index) => (
-              <button
-                key={`${result.lat}-${result.lon}-${index}`}
-                onClick={() => {
-                  onSelect({
-                    lat: parseFloat(result.lat),
-                    lng: parseFloat(result.lon),
-                    name: result.name || result.display_name.split(',')[0],
-                  })
-                  clear()
-                }}
-                className="block w-full truncate px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700"
-                title={result.display_name}
-              >
-                {result.display_name}
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Диалог за добавяне на дестинация (клик върху картата или резултат от търсене)
-function AddDestinationDialog({
-  draft,
-  onSubmit,
-  onClose,
-}: {
-  draft: AddDraft
-  onSubmit: (input: DestinationInput) => void
-  onClose: () => void
-}) {
-  const [name, setName] = useState(draft.name)
-  const [type, setType] = useState<DestinationType>('other')
-  const [visited, setVisited] = useState(false)
-
-  const handleSubmit = () => {
-    if (!name.trim()) return
-
-    onSubmit({
-      name: name.trim(),
-      latitude: draft.lat,
-      longitude: draft.lng,
-      type,
-      visited,
-      rating: null,
-      visits: [],
-      notes: null,
-      photos: [],
-      tags: [],
-    })
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    e.stopPropagation()
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      handleSubmit()
-    }
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      onClose()
-    }
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50"
-      onClick={(e) => {
-        e.stopPropagation()
-        onClose()
-      }}
-    >
-      <div
-        className="mx-4 w-full max-w-md rounded-lg border bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-800"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Plus className="h-5 w-5 text-primary-600" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Нова дестинация</h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-            aria-label="Затвори"
-          >
-            <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Име <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Въведете име на дестинацията"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
-              autoFocus
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Тип</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value as DestinationType)}
-                  className="w-full appearance-none rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:border-transparent focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                >
-                  {DESTINATION_TYPE_KEYS.map((key) => (
-                    <option key={key} value={key}>
-                      {DESTINATION_TYPES[key].emoji} {DESTINATION_TYPES[key].label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Статус</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <select
-                  value={visited ? 'visited' : 'planned'}
-                  onChange={(e) => setVisited(e.target.value === 'visited')}
-                  className="w-full appearance-none rounded-lg border border-gray-300 py-2 pl-10 pr-3 focus:border-transparent focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                >
-                  <option value="planned">🧳 За посещение</option>
-                  <option value="visited">✅ Посетена</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50">
-            <div className="flex items-start space-x-2">
-              <MapPin className="mt-0.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-              <div className="text-sm">
-                <p className="font-medium text-gray-700 dark:text-gray-300">Координати:</p>
-                <p className="mt-1 font-mono text-xs text-gray-600 dark:text-gray-400">
-                  {draft.lat.toFixed(6)}, {draft.lng.toFixed(6)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 flex items-center justify-end space-x-3 border-t border-gray-200 pt-4 dark:border-gray-700">
-          <button
-            onClick={onClose}
-            className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-          >
-            Отказ
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!name.trim()}
-            className="rounded-lg bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Добави
-          </button>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 export default function MapComponent({
@@ -616,41 +192,25 @@ export default function MapComponent({
   }, [])
 
   // Опит за автоматично име на мястото чрез обратно геокодиране (Nominatim).
-  // При неуспех връща празно име — потребителят го въвежда ръчно
-  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 4000)
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=bg&zoom=18&lat=${lat}&lon=${lng}`,
-        { signal: controller.signal }
-      )
-      if (!res.ok) return ''
-      const data = (await res.json()) as { name?: string; display_name?: string }
-      return data.name || data.display_name?.split(',')[0] || ''
-    } catch {
-      return ''
-    } finally {
-      clearTimeout(timer)
-    }
-  }
-
+  // При неуспех оставяме празно име — потребителят го въвежда ръчно
   const markUserLocation = async () => {
     if (!userPosition) return
     const { lat, lng } = userPosition
     setResolvingName(true)
-    const name = await reverseGeocode(lat, lng)
+    const location = await reverseGeocode(lat, lng)
     setResolvingName(false)
     map?.closePopup()
-    setAddDraft({ lat, lng, name })
+    setAddDraft({ lat, lng, name: location?.name ?? '', location: location ?? undefined })
   }
 
   return (
     <div className="map-container">
       <MapContainer center={[48.8566, 2.3522]} zoom={5} className="leaflet-container" ref={setMap}>
+        {/* CARTO Voyager и в двете теми — в тъмната само леко приглушена (CSS) */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          subdomains="abcd"
         />
 
         <MapController selectedDestination={selectedDestination} destinations={destinations} />
@@ -698,7 +258,12 @@ export default function MapComponent({
         )}
 
         {/* Близките маркери се групират в клъстери */}
-        <MarkerClusterGroup chunkedLoading showCoverageOnHover={false} maxClusterRadius={60}>
+        <MarkerClusterGroup
+          chunkedLoading
+          showCoverageOnHover={false}
+          maxClusterRadius={60}
+          iconCreateFunction={clusterIcon}
+        >
         {destinations.map((destination) => {
           const typeInfo = DESTINATION_TYPES[destination.type] ?? DESTINATION_TYPES.other
           const lastVisit = latestVisit(destination.visits)
@@ -706,7 +271,8 @@ export default function MapComponent({
             <Marker
               key={destination.id}
               position={[destination.latitude, destination.longitude]}
-              icon={getMarkerIcon(destination.type, destination.visited)}
+              icon={getMarkerIcon(destination.visited, pinTilt(destination.id))}
+              title={`${destination.name} · ${typeInfo.label} · ${destination.visited ? 'посетена' : 'планирана'}`}
               draggable
               eventHandlers={{
                 click: () => onSelectDestination(destination),
@@ -720,10 +286,9 @@ export default function MapComponent({
                 <div className="max-w-xs p-2">
                   {destination.photos.length > 0 && (
                     <div className="relative mb-2 h-24 w-52 overflow-hidden rounded">
-                      <Image
-                        src={destination.photos[0]}
+                      <PhotoThumb
+                        photo={destination.photos[0]}
                         alt={destination.name}
-                        fill
                         sizes="208px"
                         className="object-cover"
                       />

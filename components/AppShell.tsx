@@ -5,12 +5,13 @@ import dynamic from 'next/dynamic'
 import { X, MapPin } from 'lucide-react'
 import Header from '@/components/Header'
 import Sidebar from '@/components/Sidebar'
+import BottomNav from '@/components/BottomNav'
 import { ToastProvider } from '@/components/Toaster'
 import { useDestinations } from '@/hooks/useDestinations'
 import { Destination, DestinationInput } from '@/types/destination'
 
 // Leaflet работи само в браузъра — зареждаме картата без SSR
-const MapComponent = dynamic(() => import('@/components/MapComponent'), {
+const MapComponent = dynamic(() => import('@/components/map/MapComponent'), {
   ssr: false,
   loading: () => (
     <div className="flex h-full animate-pulse items-center justify-center bg-gray-200 dark:bg-gray-800">
@@ -26,6 +27,7 @@ interface AppShellProps {
   user: { id: string; email: string }
   initialDestinations: Destination[]
   initialError: string | null
+  initialShowList?: boolean
 }
 
 export default function AppShell(props: AppShellProps) {
@@ -36,11 +38,16 @@ export default function AppShell(props: AppShellProps) {
   )
 }
 
-function AppShellInner({ user, initialDestinations, initialError }: AppShellProps) {
+function AppShellInner({
+  user,
+  initialDestinations,
+  initialError,
+  initialShowList,
+}: AppShellProps) {
   const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null)
   const [loadError, setLoadError] = useState(initialError)
   // null = по подразбиране (отворен на десктоп, затворен на мобилен — само CSS)
-  const [sidebarOpen, setSidebarOpen] = useState<boolean | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState<boolean | null>(initialShowList ? true : null)
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
@@ -124,6 +131,8 @@ function AppShellInner({ user, initialDestinations, initialError }: AppShellProp
           />
         </div>
       </div>
+
+      <BottomNav current="map" onShowList={() => setSidebarOpen(true)} />
     </div>
   )
 }

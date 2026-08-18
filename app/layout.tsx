@@ -44,7 +44,7 @@ export default function RootLayout({
           }}
         />
         {/* React 19 повдига link елемента в <head> — по-бърза първа заявка към tile сървъра */}
-        <link rel="preconnect" href="https://tile.openstreetmap.org" />
+        <link rel="preconnect" href="https://a.basemaps.cartocdn.com" />
         <div className="flex h-dvh flex-col">
           <main className="flex-1 overflow-hidden">{children}</main>
           <Footer />

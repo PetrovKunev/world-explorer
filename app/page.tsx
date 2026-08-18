@@ -2,7 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import Auth from '@/components/Auth'
 import AppShell from '@/components/AppShell'
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ list?: string }>
+}) {
   const supabase = await createClient()
 
   const {
@@ -19,11 +23,15 @@ export default async function Home() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
+  // „Списък“ от долната навигация на таблото води насам с отворен списък
+  const { list } = await searchParams
+
   return (
     <AppShell
       user={{ id: user.id, email: user.email ?? '' }}
       initialDestinations={destinations ?? []}
       initialError={error ? 'Дестинациите не можаха да бъдат заредени.' : null}
+      initialShowList={list === '1'}
     />
   )
 }

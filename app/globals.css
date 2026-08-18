@@ -74,18 +74,31 @@
     z-index: 2;
   }
 
+  /* Пинчетата се мащабират около върха на иглата — така „порастват“,
+     без да се отлепят от точката си */
   .destination-marker {
     cursor: pointer;
     transition: transform 0.2s ease;
+    transform-origin: 50% 92%;
   }
 
   .destination-marker:hover {
-    transform: scale(1.1);
+    transform: scale(1.15);
   }
 
   .temp-marker {
     cursor: default;
+    transform-origin: 50% 92%;
     animation: temp-marker-pulse 2s infinite;
+  }
+
+  .cluster-note {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+
+  .cluster-note:hover {
+    transform: scale(1.08);
   }
 
   .user-location-pulse {
@@ -101,9 +114,10 @@
     background: rgba(17, 24, 39, 0.95);
   }
 
-  /* Тъмен режим за картата: инвертираме светлите OSM плочки */
+  /* В тъмната тема картата остава светла (Voyager), но леко приглушена,
+     за да не контрастира рязко с тъмния интерфейс */
   .dark .leaflet-tile {
-    filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+    filter: brightness(0.85) saturate(0.9);
   }
 
   .dark .leaflet-popup-content-wrapper,
