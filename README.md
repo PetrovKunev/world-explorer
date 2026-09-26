@@ -55,6 +55,12 @@
 
    и отворете [http://localhost:3000](http://localhost:3000).
 
+### Защита от паузиране на Supabase
+
+Безплатният план на Supabase паузира проекта след 7 дни без активност. `vercel.json` пуска Vercel Cron веднъж дневно към `/api/keep-alive`, който прави лека заявка към базата.
+
+За да работи в production, добавете в Vercel → Settings → Environment Variables `CRON_SECRET` (дълъг случаен низ, напр. `openssl rand -hex 32`) и направете нов deploy. Без него endpoint-ът връща 401 и ping-ът не минава. Изпълненията се виждат в Vercel → Settings → Cron Jobs, а грешките — в Logs.
+
 ## 📁 Структура
 
 ```
