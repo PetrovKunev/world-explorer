@@ -21,6 +21,10 @@ import { MapController, ClickCapture } from './MapController'
 import GeocodingSearch from './GeocodingSearch'
 import AddDestinationDialog, { AddDraft } from './AddDestinationDialog'
 
+// От 2026 CARTO изисква ключ (безплатен, carto.com/basemaps/apikey) —
+// без него tile-овете идват с воден знак „API KEY REQUIRED“
+const CARTO_TILES_URL = `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${process.env.NEXT_CARTO_API_KEY ?? ''}`
+
 interface UserPosition {
   lat: number
   lng: number
@@ -209,8 +213,7 @@ export default function MapComponent({
         {/* CARTO Voyager и в двете теми — в тъмната само леко приглушена (CSS) */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
+          url={CARTO_TILES_URL}
         />
 
         <MapController selectedDestination={selectedDestination} destinations={destinations} />
