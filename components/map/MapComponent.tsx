@@ -23,7 +23,7 @@ import AddDestinationDialog, { AddDraft } from './AddDestinationDialog'
 
 // От 2026 CARTO изисква ключ (безплатен, carto.com/basemaps/apikey) —
 // без него tile-овете идват с воден знак „API KEY REQUIRED“
-const CARTO_TILES_URL = `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${process.env.NEXT_PUBLIC_CARTO_API_KEY ?? ''}`
+const CARTO_TILES_URL = `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${process.env.NEXT_CARTO_API_KEY ?? ''}`
 
 interface UserPosition {
   lat: number

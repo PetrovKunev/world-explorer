@@ -43,10 +43,10 @@
    ```bash
    NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-key>
-   NEXT_PUBLIC_CARTO_API_KEY=<carto-basemaps-key>
+   NEXT_CARTO_API_KEY=<carto-basemaps-key>
    ```
 
-   Картата е CARTO Voyager, а CARTO изисква ключ — безплатен за некомерсиална употреба (до 5 млн. tile-а на месец) от [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/). Без него tile-овете идват с воден знак „API KEY REQUIRED“. Ключът се вижда в браузъра, затова в таблото на CARTO го ограничете до домейна на сайта (Referer). Във Vercel го добавете в Environment Variables и направете нов deploy — `NEXT_PUBLIC_` променливите се вграждат при build.
+   Картата е CARTO Voyager, а CARTO изисква ключ — безплатен за некомерсиална употреба (до 5 млн. tile-а на месец) от [carto.com/basemaps/apikey](https://carto.com/basemaps/apikey/). Без него tile-овете идват с воден знак „API KEY REQUIRED“. Ключът се вижда в браузъра, затова в таблото на CARTO го ограничете до домейна на сайта (Referer). Във Vercel го добавете в Environment Variables и направете нов deploy — ключът се вгражда в кода при build.
 
 3. Създайте таблицата и RLS политиките — изпълнете `database/schema.sql` в Supabase SQL Editor.
 
