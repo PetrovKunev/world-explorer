@@ -2,7 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Опреснява Supabase сесията при всяка заявка, за да могат
-// Server Components да четат валиден auth token от cookies
+// Server Components да четат валиден auth token от cookies.
+// /api/keep-alive (Vercel Cron) е изключен — там няма сесия за опресняване
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
 
@@ -31,5 +32,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
+  matcher: ['/((?!_next/static|api/keep-alive|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)'],
 }
